@@ -61,337 +61,375 @@
     </q-header>
 
     <!-- Sidebar -->
-    <q-drawer
-      v-model="drawerOpen"
-      show-if-above
-      :mini="miniState"
-      @mouseover="miniState = false"
-      @mouseout="miniState = true"
-      bordered
-      class="app-drawer"
-    >
-      <q-scroll-area class="fit">
-        <q-list padding>
-          <!-- Dashboard -->
-          <q-item clickable v-ripple to="/dashboard" active-class="nav-active">
-            <q-item-section avatar>
-              <q-icon name="dashboard" />
-            </q-item-section>
-            <q-item-section>Dashboard</q-item-section>
-          </q-item>
-
-          <q-separator class="q-my-sm" />
-          <q-item-label header class="text-grey-7">MANAGEMENT</q-item-label>
-
-          <!-- HRM -->
-          <q-expansion-item
-            icon="people"
-            label="HRM"
-            v-if="authStore.hasPermission(['admin', 'manager'])"
-          >
-            <q-item
-              clickable
-              v-ripple
-              to="/hrm/employees"
-              active-class="nav-active"
-              :inset-level="1"
-            >
-              <q-item-section>Employees</q-item-section>
-            </q-item>
-            <q-item
-              clickable
-              v-ripple
-              to="/hrm/attendance"
-              active-class="nav-active"
-              :inset-level="1"
-            >
-              <q-item-section>Attendance</q-item-section>
-            </q-item>
-            <q-item clickable v-ripple to="/hrm/leaves" active-class="nav-active" :inset-level="1">
-              <q-item-section>Leaves</q-item-section>
-            </q-item>
-            <q-item clickable v-ripple to="/hrm/salary" active-class="nav-active" :inset-level="1">
-              <q-item-section>Salary</q-item-section>
-            </q-item>
-          </q-expansion-item>
-
-          <!-- Stock Management - SAP B1 HANA -->
-          <q-expansion-item
-            icon="inventory_2"
-            label="Stock"
-            v-if="authStore.hasPermission(['admin', 'manager'])"
-            default-opened
-          >
-            <!-- Master Data -->
-            <q-item-label header class="text-grey-7 q-pl-lg" style="font-size: 10px"
-              >MASTER DATA</q-item-label
-            >
-            <q-item clickable v-ripple to="/stock/items" active-class="nav-active" :inset-level="1">
-              <q-item-section>Items</q-item-section>
-            </q-item>
-            <q-item
-              clickable
-              v-ripple
-              to="/stock/suppliers"
-              active-class="nav-active"
-              :inset-level="1"
-            >
-              <q-item-section>Suppliers</q-item-section>
-            </q-item>
-            <q-item
-              clickable
-              v-ripple
-              to="/stock/warehouses"
-              active-class="nav-active"
-              :inset-level="1"
-            >
-              <q-item-section>Warehouses & Bins</q-item-section>
-            </q-item>
-            <q-item
-              clickable
-              v-ripple
-              to="/stock/price-lists"
-              active-class="nav-active"
-              :inset-level="1"
-            >
-              <q-item-section>Price Lists</q-item-section>
+    <q-no-ssr>
+      <q-drawer
+        v-model="drawerOpen"
+        show-if-above
+        :mini="miniState"
+        @mouseover="miniState = false"
+        @mouseout="miniState = true"
+        bordered
+        class="app-drawer"
+      >
+        <q-scroll-area class="fit">
+          <q-list padding>
+            <!-- Dashboard -->
+            <q-item clickable v-ripple to="/dashboard" active-class="nav-active">
+              <q-item-section avatar>
+                <q-icon name="dashboard" />
+              </q-item-section>
+              <q-item-section>Dashboard</q-item-section>
             </q-item>
 
-            <!-- Transactions -->
-            <q-item-label header class="text-grey-7 q-pl-lg" style="font-size: 10px"
-              >TRANSACTIONS</q-item-label
-            >
-            <q-item clickable v-ripple to="/stock/po" active-class="nav-active" :inset-level="1">
-              <q-item-section>Purchase Orders</q-item-section>
-            </q-item>
-            <q-item clickable v-ripple to="/stock/grn" active-class="nav-active" :inset-level="1">
-              <q-item-section>Goods Receipt (GRN)</q-item-section>
-            </q-item>
-            <q-item clickable v-ripple to="/stock/gin" active-class="nav-active" :inset-level="1">
-              <q-item-section>Goods Issue (GIN)</q-item-section>
-            </q-item>
+            <q-separator class="q-my-sm" />
+            <q-item-label header class="text-grey-7">MANAGEMENT</q-item-label>
 
-            <!-- Inventory Operations -->
-            <q-item-label header class="text-grey-7 q-pl-lg" style="font-size: 10px"
-              >OPERATIONS</q-item-label
-            >
-            <q-item
-              clickable
-              v-ripple
-              to="/stock/cycle-count"
-              active-class="nav-active"
-              :inset-level="1"
-            >
-              <q-item-section>Cycle Counting</q-item-section>
-            </q-item>
-            <q-item
-              clickable
-              v-ripple
-              to="/stock/pick-pack"
-              active-class="nav-active"
-              :inset-level="1"
-            >
-              <q-item-section>Pick & Pack</q-item-section>
-            </q-item>
-          </q-expansion-item>
-
-          <!-- Billing -->
-          <q-item
-            clickable
-            v-ripple
-            to="/billing"
-            active-class="nav-active"
-            v-if="authStore.hasPermission(['admin', 'manager', 'cashier'])"
-          >
-            <q-item-section avatar>
-              <q-icon name="point_of_sale" />
-            </q-item-section>
-            <q-item-section>Billing</q-item-section>
-          </q-item>
-
-          <!-- Operations -->
-          <q-expansion-item icon="restaurant" label="Operations">
-            <q-item
-              clickable
-              v-ripple
-              to="/operations/tables"
-              active-class="nav-active"
-              :inset-level="1"
-            >
-              <q-item-section>Tables</q-item-section>
-            </q-item>
-            <q-item
-              clickable
-              v-ripple
-              to="/operations/orders"
-              active-class="nav-active"
-              :inset-level="1"
-            >
-              <q-item-section>Orders</q-item-section>
-            </q-item>
-            <q-item
-              clickable
-              v-ripple
-              to="/operations/kitchen"
-              active-class="nav-active"
-              :inset-level="1"
-              v-if="authStore.hasPermission(['admin', 'manager', 'kitchen'])"
-            >
-              <q-item-section>Kitchen Display</q-item-section>
-            </q-item>
-            <q-item
-              clickable
-              v-ripple
-              to="/operations/menu"
-              active-class="nav-active"
-              :inset-level="1"
+            <!-- HRM -->
+            <q-expansion-item
+              icon="people"
+              label="HRM"
               v-if="authStore.hasPermission(['admin', 'manager'])"
             >
-              <q-item-section>Menu</q-item-section>
-            </q-item>
-          </q-expansion-item>
+              <q-item
+                clickable
+                v-ripple
+                to="/hrm/employees"
+                active-class="nav-active"
+                :inset-level="1"
+              >
+                <q-item-section>Employees</q-item-section>
+              </q-item>
+              <q-item
+                clickable
+                v-ripple
+                to="/hrm/attendance"
+                active-class="nav-active"
+                :inset-level="1"
+              >
+                <q-item-section>Attendance</q-item-section>
+              </q-item>
+              <q-item
+                clickable
+                v-ripple
+                to="/hrm/leaves"
+                active-class="nav-active"
+                :inset-level="1"
+              >
+                <q-item-section>Leaves</q-item-section>
+              </q-item>
+              <q-item
+                clickable
+                v-ripple
+                to="/hrm/salary"
+                active-class="nav-active"
+                :inset-level="1"
+              >
+                <q-item-section>Salary</q-item-section>
+              </q-item>
+            </q-expansion-item>
 
-          <!-- Finance -->
-          <q-expansion-item
-            icon="account_balance"
-            label="Finance"
-            v-if="authStore.hasPermission(['admin', 'manager'])"
-          >
-            <q-item
-              clickable
-              v-ripple
-              to="/finance/accounts"
-              active-class="nav-active"
-              :inset-level="1"
+            <!-- Stock Management - SAP B1 HANA -->
+            <q-expansion-item
+              icon="inventory_2"
+              label="Stock"
+              v-if="authStore.hasPermission(['admin', 'manager'])"
+              default-opened
             >
-              <q-item-section>Accounts</q-item-section>
-            </q-item>
-            <q-item
-              clickable
-              v-ripple
-              to="/finance/transactions"
-              active-class="nav-active"
-              :inset-level="1"
-            >
-              <q-item-section>Transactions</q-item-section>
-            </q-item>
-            <q-item
-              clickable
-              v-ripple
-              to="/finance/daily-cash"
-              active-class="nav-active"
-              :inset-level="1"
-            >
-              <q-item-section>Daily Cash</q-item-section>
-            </q-item>
-          </q-expansion-item>
+              <!-- Master Data -->
+              <q-item-label header class="text-grey-7 q-pl-lg" style="font-size: 10px"
+                >MASTER DATA</q-item-label
+              >
+              <q-item
+                clickable
+                v-ripple
+                to="/stock/items"
+                active-class="nav-active"
+                :inset-level="1"
+              >
+                <q-item-section>Items</q-item-section>
+              </q-item>
+              <q-item
+                clickable
+                v-ripple
+                to="/stock/suppliers"
+                active-class="nav-active"
+                :inset-level="1"
+              >
+                <q-item-section>Suppliers</q-item-section>
+              </q-item>
+              <q-item
+                clickable
+                v-ripple
+                to="/stock/warehouses"
+                active-class="nav-active"
+                :inset-level="1"
+              >
+                <q-item-section>Warehouses & Bins</q-item-section>
+              </q-item>
+              <q-item
+                clickable
+                v-ripple
+                to="/stock/price-lists"
+                active-class="nav-active"
+                :inset-level="1"
+              >
+                <q-item-section>Price Lists</q-item-section>
+              </q-item>
 
-          <!-- Sales -->
-          <q-item
-            clickable
-            v-ripple
-            to="/sales"
-            active-class="nav-active"
-            v-if="authStore.hasPermission(['admin', 'manager'])"
-          >
-            <q-item-section avatar>
-              <q-icon name="trending_up" />
-            </q-item-section>
-            <q-item-section>Sales</q-item-section>
-          </q-item>
+              <!-- Transactions -->
+              <q-item-label header class="text-grey-7 q-pl-lg" style="font-size: 10px"
+                >TRANSACTIONS</q-item-label
+              >
+              <q-item clickable v-ripple to="/stock/po" active-class="nav-active" :inset-level="1">
+                <q-item-section>Purchase Orders</q-item-section>
+              </q-item>
+              <q-item clickable v-ripple to="/stock/grn" active-class="nav-active" :inset-level="1">
+                <q-item-section>Goods Receipt (GRN)</q-item-section>
+              </q-item>
+              <q-item clickable v-ripple to="/stock/gin" active-class="nav-active" :inset-level="1">
+                <q-item-section>Goods Issue (GIN)</q-item-section>
+              </q-item>
 
-          <q-separator class="q-my-sm" />
-          <q-item-label header class="text-grey-7">REPORTS</q-item-label>
+              <!-- Inventory Operations -->
+              <q-item-label header class="text-grey-7 q-pl-lg" style="font-size: 10px"
+                >OPERATIONS</q-item-label
+              >
+              <q-item
+                clickable
+                v-ripple
+                to="/stock/cycle-count"
+                active-class="nav-active"
+                :inset-level="1"
+              >
+                <q-item-section>Cycle Counting</q-item-section>
+              </q-item>
+              <q-item
+                clickable
+                v-ripple
+                to="/stock/pick-pack"
+                active-class="nav-active"
+                :inset-level="1"
+              >
+                <q-item-section>Pick & Pack</q-item-section>
+              </q-item>
+            </q-expansion-item>
 
-          <!-- Reports -->
-          <q-expansion-item
-            icon="assessment"
-            label="Reports"
-            v-if="authStore.hasPermission(['admin', 'manager'])"
-          >
+            <!-- Billing -->
             <q-item
               clickable
               v-ripple
-              to="/reports/daily-sales"
+              to="/billing"
               active-class="nav-active"
-              :inset-level="1"
+              v-if="authStore.hasPermission(['admin', 'manager', 'cashier'])"
             >
-              <q-item-section>Daily Sales</q-item-section>
-            </q-item>
-            <q-item
-              clickable
-              v-ripple
-              to="/reports/kitchen-sales"
-              active-class="nav-active"
-              :inset-level="1"
-            >
-              <q-item-section>Kitchen-wise Sales</q-item-section>
-            </q-item>
-            <q-item
-              clickable
-              v-ripple
-              to="/reports/table-sales"
-              active-class="nav-active"
-              :inset-level="1"
-            >
-              <q-item-section>Table-wise Sales</q-item-section>
-            </q-item>
-            <q-item clickable v-ripple to="/reports/grn" active-class="nav-active" :inset-level="1">
-              <q-item-section>GRN Report</q-item-section>
-            </q-item>
-            <q-item clickable v-ripple to="/reports/gin" active-class="nav-active" :inset-level="1">
-              <q-item-section>GIN Report</q-item-section>
-            </q-item>
-            <q-item clickable v-ripple to="/reports/po" active-class="nav-active" :inset-level="1">
-              <q-item-section>PO Report</q-item-section>
+              <q-item-section avatar>
+                <q-icon name="point_of_sale" />
+              </q-item-section>
+              <q-item-section>Billing</q-item-section>
             </q-item>
 
-            <!-- Inventory Reports - SAP Style -->
-            <q-item-label header class="text-grey-7 q-pl-lg" style="font-size: 10px"
-              >INVENTORY</q-item-label
-            >
-            <q-item
-              clickable
-              v-ripple
-              to="/reports/inventory-audit"
-              active-class="nav-active"
-              :inset-level="1"
-            >
-              <q-item-section>Audit Trail (OINM)</q-item-section>
-            </q-item>
-            <q-item
-              clickable
-              v-ripple
-              to="/reports/inventory-status"
-              active-class="nav-active"
-              :inset-level="1"
-            >
-              <q-item-section>Inventory Status</q-item-section>
-            </q-item>
-          </q-expansion-item>
+            <!-- Operations -->
+            <q-expansion-item icon="restaurant" label="Operations">
+              <q-item
+                clickable
+                v-ripple
+                to="/operations/tables"
+                active-class="nav-active"
+                :inset-level="1"
+              >
+                <q-item-section>Tables</q-item-section>
+              </q-item>
+              <q-item
+                clickable
+                v-ripple
+                to="/operations/orders"
+                active-class="nav-active"
+                :inset-level="1"
+              >
+                <q-item-section>Orders</q-item-section>
+              </q-item>
+              <q-item
+                clickable
+                v-ripple
+                to="/operations/kitchen"
+                active-class="nav-active"
+                :inset-level="1"
+                v-if="authStore.hasPermission(['admin', 'manager', 'kitchen'])"
+              >
+                <q-item-section>Kitchen Display</q-item-section>
+              </q-item>
+              <q-item
+                clickable
+                v-ripple
+                to="/operations/menu"
+                active-class="nav-active"
+                :inset-level="1"
+                v-if="authStore.hasPermission(['admin', 'manager'])"
+              >
+                <q-item-section>Menu</q-item-section>
+              </q-item>
+            </q-expansion-item>
 
-          <!-- Admin Only -->
-          <template v-if="authStore.isAdmin">
+            <!-- Finance -->
+            <q-expansion-item
+              icon="account_balance"
+              label="Finance"
+              v-if="authStore.hasPermission(['admin', 'manager'])"
+            >
+              <q-item
+                clickable
+                v-ripple
+                to="/finance/accounts"
+                active-class="nav-active"
+                :inset-level="1"
+              >
+                <q-item-section>Accounts</q-item-section>
+              </q-item>
+              <q-item
+                clickable
+                v-ripple
+                to="/finance/transactions"
+                active-class="nav-active"
+                :inset-level="1"
+              >
+                <q-item-section>Transactions</q-item-section>
+              </q-item>
+              <q-item
+                clickable
+                v-ripple
+                to="/finance/daily-cash"
+                active-class="nav-active"
+                :inset-level="1"
+              >
+                <q-item-section>Daily Cash</q-item-section>
+              </q-item>
+            </q-expansion-item>
+
+            <!-- Sales -->
+            <q-item
+              clickable
+              v-ripple
+              to="/sales"
+              active-class="nav-active"
+              v-if="authStore.hasPermission(['admin', 'manager'])"
+            >
+              <q-item-section avatar>
+                <q-icon name="trending_up" />
+              </q-item-section>
+              <q-item-section>Sales</q-item-section>
+            </q-item>
+
             <q-separator class="q-my-sm" />
-            <q-item-label header class="text-grey-7">ADMIN</q-item-label>
+            <q-item-label header class="text-grey-7">REPORTS</q-item-label>
 
-            <q-item clickable v-ripple to="/admin/users" active-class="nav-active">
-              <q-item-section avatar>
-                <q-icon name="manage_accounts" />
-              </q-item-section>
-              <q-item-section>User Management</q-item-section>
-            </q-item>
+            <!-- Reports -->
+            <q-expansion-item
+              icon="assessment"
+              label="Reports"
+              v-if="authStore.hasPermission(['admin', 'manager'])"
+            >
+              <q-item
+                clickable
+                v-ripple
+                to="/reports/daily-sales"
+                active-class="nav-active"
+                :inset-level="1"
+              >
+                <q-item-section>Daily Sales</q-item-section>
+              </q-item>
+              <q-item
+                clickable
+                v-ripple
+                to="/reports/kitchen-sales"
+                active-class="nav-active"
+                :inset-level="1"
+              >
+                <q-item-section>Kitchen-wise Sales</q-item-section>
+              </q-item>
+              <q-item
+                clickable
+                v-ripple
+                to="/reports/table-sales"
+                active-class="nav-active"
+                :inset-level="1"
+              >
+                <q-item-section>Table-wise Sales</q-item-section>
+              </q-item>
+              <q-item
+                clickable
+                v-ripple
+                to="/reports/grn"
+                active-class="nav-active"
+                :inset-level="1"
+              >
+                <q-item-section>GRN Report</q-item-section>
+              </q-item>
+              <q-item
+                clickable
+                v-ripple
+                to="/reports/gin"
+                active-class="nav-active"
+                :inset-level="1"
+              >
+                <q-item-section>GIN Report</q-item-section>
+              </q-item>
+              <q-item
+                clickable
+                v-ripple
+                to="/reports/po"
+                active-class="nav-active"
+                :inset-level="1"
+              >
+                <q-item-section>PO Report</q-item-section>
+              </q-item>
 
-            <q-item clickable v-ripple to="/admin/settings" active-class="nav-active">
-              <q-item-section avatar>
-                <q-icon name="settings" />
-              </q-item-section>
-              <q-item-section>Settings</q-item-section>
-            </q-item>
-          </template>
-        </q-list>
-      </q-scroll-area>
-    </q-drawer>
+              <!-- Inventory Reports - SAP Style -->
+              <q-item-label header class="text-grey-7 q-pl-lg" style="font-size: 10px"
+                >INVENTORY</q-item-label
+              >
+              <q-item
+                clickable
+                v-ripple
+                to="/reports/inventory-audit"
+                active-class="nav-active"
+                :inset-level="1"
+              >
+                <q-item-section>Audit Trail (OINM)</q-item-section>
+              </q-item>
+              <q-item
+                clickable
+                v-ripple
+                to="/reports/inventory-status"
+                active-class="nav-active"
+                :inset-level="1"
+              >
+                <q-item-section>Inventory Status</q-item-section>
+              </q-item>
+            </q-expansion-item>
+
+            <!-- Admin Only -->
+            <template v-if="authStore.isAdmin">
+              <q-separator class="q-my-sm" />
+              <q-item-label header class="text-grey-7">ADMIN</q-item-label>
+
+              <q-item clickable v-ripple to="/admin/users" active-class="nav-active">
+                <q-item-section avatar>
+                  <q-icon name="manage_accounts" />
+                </q-item-section>
+                <q-item-section>User Management</q-item-section>
+              </q-item>
+
+              <q-item clickable v-ripple to="/admin/settings" active-class="nav-active">
+                <q-item-section avatar>
+                  <q-icon name="settings" />
+                </q-item-section>
+                <q-item-section>Settings</q-item-section>
+              </q-item>
+            </template>
+          </q-list>
+        </q-scroll-area>
+      </q-drawer>
+    </q-no-ssr>
 
     <!-- Page Container -->
     <q-page-container>

@@ -19,6 +19,8 @@ export const useStockStore = defineStore('stock', () => {
   const goodsReceiptNotes = ref([])
   const goodsIssueNotes = ref([])
   const stockTransactions = ref([])
+  const recipes = ref([])
+  const stockTransfers = ref([])
 
   // UI State
   const loading = ref(false)
@@ -44,6 +46,10 @@ export const useStockStore = defineStore('stock', () => {
   const pendingGRNs = computed(() =>
     goodsReceiptNotes.value.filter((grn) => grn.status === 'pending'),
   )
+
+  const activeRecipes = computed(() => recipes.value.filter((r) => r.is_active))
+
+  const pendingTransfers = computed(() => stockTransfers.value.filter((t) => t.status === 'draft'))
 
   // ============================================
   // MASTER DATA ACTIONS
@@ -851,6 +857,326 @@ export const useStockStore = defineStore('stock', () => {
   }
 
   // ============================================
+  // RECIPE / BOM ACTIONS
+  // ============================================
+
+  async function fetchRecipes() {
+    try {
+      loading.value = true
+      const { data, error: fetchError } = await supabase
+        .from('recipes')
+        .select(
+          `
+          *,
+          sales_item:items!recipes_sales_item_id_fkey(id, item_code, item_name),
+          target_warehouse:warehouses(id, name, code),
+          yield_uom:units_of_measure(id, code, name),
+          created_by_user:profiles!recipes_created_by_fkey(full_name),
+          recipe_lines(
+            *,
+            item:items(id, item_code, item_name, is_purchase_item),
+            uom:units_of_measure(id, code, name)
+          )
+        `,
+        )
+        .order('created_at', { ascending: false })
+
+      if (fetchError) throw fetchError
+      recipes.value = data
+      return { success: true, data }
+    } catch (err) {
+      console.error('Error fetching recipes:', err)
+      error.value = err.message
+      return { success: false, error: err.message }
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function createRecipe(recipeData, lines) {
+    try {
+      loading.value = true
+
+      // Generate recipe code
+      const docResult = await generateDocNumber('RCP')
+      if (!docResult.success) throw new Error(docResult.error)
+
+      // Create recipe header
+      const { data: recipe, error: recipeError } = await supabase
+        .from('recipes')
+        .insert({
+          ...recipeData,
+          recipe_code: docResult.docNumber,
+        })
+        .select()
+        .single()
+
+      if (recipeError) throw recipeError
+
+      // Create recipe lines with cost calculation
+      const recipeLines = lines.map((line, index) => ({
+        recipe_id: recipe.id,
+        line_num: index + 1,
+        item_id: line.item_id,
+        quantity: line.quantity,
+        uom_id: line.uom_id,
+        unit_cost: line.unit_cost || 0,
+        line_total: line.quantity * (line.unit_cost || 0),
+        notes: line.notes,
+      }))
+
+      const { error: linesError } = await supabase.from('recipe_lines').insert(recipeLines)
+
+      if (linesError) throw linesError
+
+      await fetchRecipes()
+      return { success: true, data: recipe }
+    } catch (err) {
+      console.error('Error creating recipe:', err)
+      return { success: false, error: err.message }
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function updateRecipe(id, updates, lines = null) {
+    try {
+      loading.value = true
+      const { data, error: updateError } = await supabase
+        .from('recipes')
+        .update({ ...updates, updated_at: new Date().toISOString() })
+        .eq('id', id)
+        .select()
+        .single()
+
+      if (updateError) throw updateError
+
+      // Update lines if provided
+      if (lines) {
+        // Delete existing lines
+        await supabase.from('recipe_lines').delete().eq('recipe_id', id)
+
+        // Insert new lines
+        const recipeLines = lines.map((line, index) => ({
+          recipe_id: id,
+          line_num: index + 1,
+          item_id: line.item_id,
+          quantity: line.quantity,
+          uom_id: line.uom_id,
+          unit_cost: line.unit_cost || 0,
+          line_total: line.quantity * (line.unit_cost || 0),
+          notes: line.notes,
+        }))
+
+        const { error: linesError } = await supabase.from('recipe_lines').insert(recipeLines)
+        if (linesError) throw linesError
+      }
+
+      await fetchRecipes()
+      return { success: true, data }
+    } catch (err) {
+      console.error('Error updating recipe:', err)
+      return { success: false, error: err.message }
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function deleteRecipe(id) {
+    try {
+      loading.value = true
+      const { error: deleteError } = await supabase.from('recipes').delete().eq('id', id)
+
+      if (deleteError) throw deleteError
+      recipes.value = recipes.value.filter((r) => r.id !== id)
+      return { success: true }
+    } catch (err) {
+      console.error('Error deleting recipe:', err)
+      return { success: false, error: err.message }
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function calculateRecipeCost(recipeId) {
+    try {
+      // Get recipe with lines
+      const recipe = recipes.value.find((r) => r.id === recipeId)
+      if (!recipe || !recipe.recipe_lines) {
+        return { success: false, error: 'Recipe not found' }
+      }
+
+      let totalCost = 0
+
+      // Calculate cost for each ingredient
+      for (const line of recipe.recipe_lines) {
+        // Get current average cost from warehouse_stock for the target warehouse
+        const { data: stockData } = await supabase
+          .from('warehouse_stock')
+          .select('average_cost')
+          .eq('item_id', line.item_id)
+          .eq('warehouse_id', recipe.target_warehouse_id)
+          .single()
+
+        const avgCost = stockData?.average_cost || line.unit_cost || 0
+        totalCost += line.quantity * avgCost
+      }
+
+      return { success: true, totalCost }
+    } catch (err) {
+      console.error('Error calculating recipe cost:', err)
+      return { success: false, error: err.message }
+    }
+  }
+
+  // ============================================
+  // STOCK TRANSFER ACTIONS
+  // ============================================
+
+  async function fetchStockTransfers() {
+    try {
+      loading.value = true
+      const { data, error: fetchError } = await supabase
+        .from('stock_transfers')
+        .select(
+          `
+          *,
+          from_warehouse:warehouses!stock_transfers_from_warehouse_id_fkey(id, name, code),
+          to_warehouse:warehouses!stock_transfers_to_warehouse_id_fkey(id, name, code),
+          created_by_user:profiles!stock_transfers_created_by_fkey(full_name),
+          approved_by_user:profiles!stock_transfers_approved_by_fkey(full_name),
+          stock_transfer_lines(
+            *,
+            item:items(id, item_code, item_name),
+            uom:units_of_measure(id, code, name)
+          )
+        `,
+        )
+        .order('created_at', { ascending: false })
+
+      if (fetchError) throw fetchError
+      stockTransfers.value = data
+      return { success: true, data }
+    } catch (err) {
+      console.error('Error fetching stock transfers:', err)
+      error.value = err.message
+      return { success: false, error: err.message }
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function createStockTransfer(transferData, lines) {
+    try {
+      loading.value = true
+
+      // Generate document number
+      const docResult = await generateDocNumber('STR')
+      if (!docResult.success) throw new Error(docResult.error)
+
+      // Calculate total cost
+      const totalCost = lines.reduce((sum, line) => sum + line.quantity * (line.unit_cost || 0), 0)
+
+      // Create transfer header
+      const { data: transfer, error: transferError } = await supabase
+        .from('stock_transfers')
+        .insert({
+          ...transferData,
+          doc_number: docResult.docNumber,
+          total_cost: totalCost,
+        })
+        .select()
+        .single()
+
+      if (transferError) throw transferError
+
+      // Create transfer lines
+      const transferLines = lines.map((line, index) => ({
+        transfer_id: transfer.id,
+        line_num: index + 1,
+        item_id: line.item_id,
+        item_description: line.item_description,
+        quantity: line.quantity,
+        uom_id: line.uom_id,
+        unit_cost: line.unit_cost || 0,
+        line_total: line.quantity * (line.unit_cost || 0),
+      }))
+
+      const { error: linesError } = await supabase
+        .from('stock_transfer_lines')
+        .insert(transferLines)
+
+      if (linesError) throw linesError
+
+      await fetchStockTransfers()
+      return { success: true, data: transfer }
+    } catch (err) {
+      console.error('Error creating stock transfer:', err)
+      return { success: false, error: err.message }
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function completeStockTransfer(transferId, approvedBy) {
+    try {
+      loading.value = true
+      const { data, error: updateError } = await supabase
+        .from('stock_transfers')
+        .update({
+          status: 'completed',
+          approved_by: approvedBy,
+          approved_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', transferId)
+        .select()
+        .single()
+
+      if (updateError) throw updateError
+
+      // Trigger will handle stock updates
+      await Promise.all([fetchStockTransfers(), fetchItems()])
+
+      return { success: true, data }
+    } catch (err) {
+      console.error('Error completing stock transfer:', err)
+      return { success: false, error: err.message }
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function cancelStockTransfer(transferId) {
+    try {
+      loading.value = true
+      const { data, error: updateError } = await supabase
+        .from('stock_transfers')
+        .update({
+          status: 'cancelled',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', transferId)
+        .select()
+        .single()
+
+      if (updateError) throw updateError
+
+      const index = stockTransfers.value.findIndex((t) => t.id === transferId)
+      if (index !== -1) {
+        stockTransfers.value[index] = { ...stockTransfers.value[index], ...data }
+      }
+
+      return { success: true, data }
+    } catch (err) {
+      console.error('Error cancelling stock transfer:', err)
+      return { success: false, error: err.message }
+    } finally {
+      loading.value = false
+    }
+  }
+
+  // ============================================
   // REALTIME SUBSCRIPTIONS
   // ============================================
 
@@ -935,6 +1261,8 @@ export const useStockStore = defineStore('stock', () => {
     goodsReceiptNotes,
     goodsIssueNotes,
     stockTransactions,
+    recipes,
+    stockTransfers,
     loading,
     error,
 
@@ -946,6 +1274,8 @@ export const useStockStore = defineStore('stock', () => {
     defaultWarehouse,
     pendingPOs,
     pendingGRNs,
+    activeRecipes,
+    pendingTransfers,
 
     // Master Data Actions
     fetchUnitsOfMeasure,
@@ -984,6 +1314,19 @@ export const useStockStore = defineStore('stock', () => {
 
     // Stock Transactions
     fetchStockTransactions,
+
+    // Recipe/BOM Actions
+    fetchRecipes,
+    createRecipe,
+    updateRecipe,
+    deleteRecipe,
+    calculateRecipeCost,
+
+    // Stock Transfer Actions
+    fetchStockTransfers,
+    createStockTransfer,
+    completeStockTransfer,
+    cancelStockTransfer,
 
     // Realtime
     setupRealtimeSubscriptions,

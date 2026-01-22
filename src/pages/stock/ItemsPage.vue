@@ -123,6 +123,38 @@
             </q-td>
           </template>
 
+          <!-- Item Types Column (NEW) -->
+          <template #body-cell-item_types="props">
+            <q-td :props="props" class="text-center">
+              <div class="row inline items-center q-gutter-xs justify-center">
+                <q-icon
+                  v-if="props.row.is_inventory_item"
+                  name="inventory"
+                  color="primary"
+                  size="16px"
+                >
+                  <q-tooltip>Inventory Item</q-tooltip>
+                </q-icon>
+                <q-icon
+                  v-if="props.row.is_sales_item"
+                  name="point_of_sale"
+                  color="positive"
+                  size="16px"
+                >
+                  <q-tooltip>Sales Item</q-tooltip>
+                </q-icon>
+                <q-icon
+                  v-if="props.row.is_purchase_item"
+                  name="shopping_cart"
+                  color="accent"
+                  size="16px"
+                >
+                  <q-tooltip>Purchase Item</q-tooltip>
+                </q-icon>
+              </div>
+            </q-td>
+          </template>
+
           <!-- Status Column -->
           <template #body-cell-is_active="props">
             <q-td :props="props" class="text-center">
@@ -371,6 +403,7 @@
           <div class="col-12">
             <div class="row q-gutter-md">
               <q-checkbox v-model="itemForm.is_active" label="Active" dense />
+              <q-checkbox v-model="itemForm.is_inventory_item" label="Inventory Item" dense />
               <q-checkbox v-model="itemForm.is_purchase_item" label="Purchase Item" dense />
               <q-checkbox v-model="itemForm.is_sales_item" label="Sales Item" dense />
             </div>
@@ -603,6 +636,13 @@ const columns = [
     sortable: true,
     align: 'right',
   },
+  {
+    name: 'item_types',
+    label: 'Type',
+    field: 'item_types',
+    align: 'center',
+    style: 'width: 100px',
+  },
   { name: 'is_active', label: 'Active', field: 'is_active', sortable: true, align: 'center' },
   { name: 'actions', label: 'Actions', field: 'actions', align: 'center' },
 ]
@@ -682,6 +722,7 @@ function getEmptyForm() {
     default_supplier_id: null,
     description: '',
     is_active: true,
+    is_inventory_item: true,
     is_purchase_item: true,
     is_sales_item: true,
   }
