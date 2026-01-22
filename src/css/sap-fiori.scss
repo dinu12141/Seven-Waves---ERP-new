@@ -1,0 +1,93 @@
+/* SAP Fiori Style Overrides */
+
+body {
+  font-family:
+    '72', 'Inter', 'Roboto', sans-serif; /* '72' is SAP's font, fallback to Inter/Roboto */
+  font-size: 13px;
+  color: #32363a;
+  background-color: #f5f7fa;
+}
+
+/* Dense Inputs & Forms */
+.q-field--dense .q-field__control,
+.q-field--dense .q-field__marginal {
+  height: 32px;
+}
+
+.q-field__label {
+  font-size: 12px;
+  top: 6px;
+}
+
+.q-input,
+.q-select {
+  font-size: 13px;
+}
+
+/* Buttons */
+.q-btn {
+  text-transform: none;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+.q-btn--dense {
+  min-height: 2rem;
+}
+
+/* Tables */
+/* .sap-table { } - Using Quasar class overrides where possible */
+
+.q-table th {
+  font-size: 12px;
+  font-weight: 600;
+  color: #6a6d70;
+  background-color: #eff1f5;
+  text-transform: uppercase;
+}
+
+.q-table td {
+  font-size: 13px;
+  border-bottom: 1px solid #e0e4e8;
+}
+
+/* Cards */
+.sap-card {
+  border: 1px solid #d9d9d9;
+  border-radius: 4px; /* Fiori often uses smaller border radius */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.section-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 8px;
+  border-bottom: 2px solid var(--q-primary);
+  display: inline-block;
+  padding-bottom: 2px;
+}
+
+/* Golden Arrow Container */
+.drill-down-link {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  color: #000;
+}
+.drill-down-link:hover {
+  text-decoration: underline;
+}
+
+/* Consistent Spacing */
+.q-page {
+  padding: 16px;
+}
+
+/* Brand Colors (User requested Black, White, Green) */
+/* These should likely be defined in quasar.variables.scss, but we enforce specific uses here */
+
+.text-sap-link {
+  color: #0a4d8c; /* Standard SAP Link color, or use brand primary */
+  cursor: pointer;
+}
