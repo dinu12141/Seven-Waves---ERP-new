@@ -1,2 +1,61 @@
 // app global css in SCSS form
 @import './sap-fiori.scss';
+
+@media print {
+  /* Hide non-printable elements */
+  .q-header,
+  .q-drawer,
+  .q-btn,
+  .sap-toolbar, 
+  .sap-card .stat-card, /* Maybe headers/stats too depending on preference, but keeping stats is usually good for reports. */
+  .q-notification,
+  .q-tooltip,
+  .no-print {
+    display: none !important;
+  }
+
+  /* Ensure the page content takes full width */
+  .q-page-container {
+    padding-top: 0 !important;
+    padding-left: 0 !important;
+  }
+
+  .q-page {
+    padding: 0 !important;
+    min-height: auto !important;
+  }
+
+  .sap-page-content {
+    padding: 0 !important;
+  }
+
+  /* Reset background colors for saving ink */
+  body,
+  .q-page,
+  .sap-card {
+    background-color: white !important;
+    color: black !important;
+  }
+
+  /* Ensure tables print nicely */
+  .q-table__container {
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  .q-table {
+    width: 100% !important;
+  }
+
+  /* Header for print view */
+  .print-only-header {
+    display: block !important;
+    text-align: center;
+    margin-bottom: 20px;
+  }
+}
+
+/* Hide print header on screen */
+.print-only-header {
+  display: none;
+}

@@ -231,10 +231,10 @@ function formatNumber(value) {
     font-weight: 600;
     text-transform: uppercase;
     color: #333;
-    background: #f5f5f5;
+    background: #fff;
     padding: 8px 12px;
     white-space: nowrap;
-    border-bottom: 2px solid #ddd;
+    border-bottom: 1px solid #e0e0e0;
   }
 
   :deep(tbody tr td) {

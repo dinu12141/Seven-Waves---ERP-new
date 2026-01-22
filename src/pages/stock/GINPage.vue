@@ -6,8 +6,12 @@
       icon="outbox"
       :badge="stockStore.goodsIssueNotes.length"
       add-label="New GIN"
+      :show-export-excel="true"
+      :show-export-pdf="true"
       @add="openCreateDialog"
       @refresh="loadData"
+      @export-excel="exportExcel"
+      @export-pdf="exportPDF"
     />
 
     <!-- Main Content -->
@@ -309,11 +313,13 @@ import {
   SAPSelect,
   GoldenArrow,
 } from 'src/components/sap'
+import { useExport } from 'src/composables/useExport'
 
 const $q = useQuasar()
 const router = useRouter()
 const stockStore = useStockStore()
 const authStore = useAuthStore()
+const { exportToExcel, exportToPDF } = useExport()
 
 const showCreateDialog = ref(false)
 const showViewDialog = ref(false)
@@ -513,6 +519,60 @@ async function completeGIN(gin) {
 function goToItemMaster(itemId) {
   if (!itemId) return
   router.push({ path: '/stock/items', query: { id: itemId } })
+}
+
+function exportExcel() {
+  const flattenedData = getExportData()
+  const exportCols = getExportColumns()
+  const filename = `GIN_Detailed_Report_${new Date().toISOString().split('T')[0]}`
+  const title = 'Goods Issue Notes (GIN) - Detailed Report'
+  exportToExcel(flattenedData, exportCols, title, filename)
+  $q.notify({ type: 'positive', message: 'Excel download started', position: 'top' })
+}
+
+function exportPDF() {
+  const flattenedData = getExportData()
+  const exportCols = getExportColumns()
+  const filename = `GIN_Detailed_Report_${new Date().toISOString().split('T')[0]}`
+  const title = 'Goods Issue Notes (GIN) - Detailed Report'
+  exportToPDF(flattenedData, exportCols, title, filename)
+  $q.notify({ type: 'positive', message: 'PDF download started', position: 'top' })
+}
+
+function getExportData() {
+  const flattenedData = []
+  stockStore.goodsIssueNotes.forEach((gin) => {
+    if (gin.gin_lines && gin.gin_lines.length > 0) {
+      gin.gin_lines.forEach((line) => {
+        flattenedData.push({
+          doc_number: gin.doc_number,
+          doc_date: gin.doc_date,
+          issue_type: formatType(gin.issue_type),
+          source: gin.from_warehouse?.name,
+          destination: gin.to_warehouse?.name || 'Internal/Waste',
+          item_code: line.item?.item_code,
+          item_name: line.item?.item_name,
+          quantity: line.quantity,
+          uom: line.uom?.code,
+        })
+      })
+    }
+  })
+  return flattenedData
+}
+
+function getExportColumns() {
+  return [
+    { label: 'GIN Number', field: 'doc_number' },
+    { label: 'Date', field: 'doc_date' },
+    { label: 'Issue Type', field: 'issue_type' },
+    { label: 'From Warehouse', field: 'source' },
+    { label: 'Department/Kitchen', field: 'destination' },
+    { label: 'Item Code', field: 'item_code' },
+    { label: 'Item Name', field: 'item_name' },
+    { label: 'Quantity', field: 'quantity' },
+    { label: 'UoM', field: 'uom' },
+  ]
 }
 
 // Keyboard Shortcuts

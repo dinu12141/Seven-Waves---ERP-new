@@ -315,7 +315,10 @@
         <div class="row q-col-gutter-md q-mb-md">
           <div class="col-4">
             <div class="detail-label">Supplier</div>
-            <div class="detail-value">{{ selectedPO.supplier?.name }}</div>
+            <div class="row items-center no-wrap">
+              <div class="detail-value q-mr-xs">{{ selectedPO.supplier?.name }}</div>
+              <GoldenArrow @click="goToSupplierMaster(selectedPO.supplier?.id)" />
+            </div>
           </div>
           <div class="col-4">
             <div class="detail-label">Document Date</div>
@@ -590,6 +593,11 @@ function createGRN(po) {
 function goToItemMaster(itemId) {
   if (!itemId) return
   router.push({ path: '/stock/items', query: { id: itemId } })
+}
+
+function goToSupplierMaster(supplierId) {
+  if (!supplierId) return
+  router.push({ path: '/stock/suppliers', query: { id: supplierId } })
 }
 
 // Keyboard Shortcuts

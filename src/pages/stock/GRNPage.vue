@@ -4,10 +4,12 @@
     <SAPToolbar
       title="Goods Receipt Notes (GRN)"
       icon="move_to_inbox"
-      :badge="stockStore.goodsReceiptNotes.length"
-      add-label="New GRN"
+      :show-export-excel="true"
+      :show-export-pdf="true"
       @add="openCreateDialog"
       @refresh="loadData"
+      @export-excel="exportExcel"
+      @export-pdf="exportPDF"
     />
 
     <!-- Main Content -->
@@ -208,7 +210,10 @@
         <div class="row q-col-gutter-md q-mb-md">
           <div class="col-4">
             <div class="detail-label">Supplier</div>
-            <div class="detail-value">{{ selectedGRN.supplier?.name }}</div>
+            <div class="row items-center no-wrap">
+              <div class="detail-value q-mr-xs">{{ selectedGRN.supplier?.name }}</div>
+              <GoldenArrow @click="goToSupplierMaster(selectedGRN.supplier?.id)" />
+            </div>
           </div>
           <div class="col-4">
             <div class="detail-label">PO Reference</div>
@@ -257,12 +262,14 @@ import {
   SAPSelect,
   GoldenArrow,
 } from 'src/components/sap'
+import { useExport } from 'src/composables/useExport'
 
 const $q = useQuasar()
 const route = useRoute()
 const router = useRouter()
 const stockStore = useStockStore()
 const authStore = useAuthStore()
+const { exportToExcel, exportToPDF } = useExport()
 
 const showCreateDialog = ref(false)
 const showViewDialog = ref(false)
@@ -459,6 +466,65 @@ async function completeGRN(grn) {
 function goToItemMaster(itemId) {
   if (!itemId) return
   router.push({ path: '/stock/items', query: { id: itemId } })
+}
+
+function goToSupplierMaster(supplierId) {
+  if (!supplierId) return
+  router.push({ path: '/stock/suppliers', query: { id: supplierId } })
+}
+
+function exportExcel() {
+  const flattenedData = getExportData()
+  const exportCols = getExportColumns()
+  const filename = `GRN_Detailed_Report_${new Date().toISOString().split('T')[0]}`
+  const title = 'Goods Receipt Notes (GRN) - Detailed Report'
+  exportToExcel(flattenedData, exportCols, title, filename)
+  $q.notify({ type: 'positive', message: 'Excel download started', position: 'top' })
+}
+
+function exportPDF() {
+  const flattenedData = getExportData()
+  const exportCols = getExportColumns()
+  const filename = `GRN_Detailed_Report_${new Date().toISOString().split('T')[0]}`
+  const title = 'Goods Receipt Notes (GRN) - Detailed Report'
+  exportToPDF(flattenedData, exportCols, title, filename)
+  $q.notify({ type: 'positive', message: 'PDF download started', position: 'top' })
+}
+
+function getExportData() {
+  const flattenedData = []
+  stockStore.goodsReceiptNotes.forEach((grn) => {
+    if (grn.grn_lines && grn.grn_lines.length > 0) {
+      grn.grn_lines.forEach((line) => {
+        flattenedData.push({
+          doc_number: grn.doc_number,
+          doc_date: grn.doc_date,
+          supplier: grn.supplier?.name,
+          warehouse: grn.warehouse?.name,
+          item_code: line.item?.item_code,
+          item_name: line.item?.item_name,
+          quantity: line.quantity,
+          unit_cost: line.unit_cost,
+          total_value: line.line_total,
+        })
+      })
+    }
+  })
+  return flattenedData
+}
+
+function getExportColumns() {
+  return [
+    { label: 'GRN Number', field: 'doc_number' },
+    { label: 'Date', field: 'doc_date' },
+    { label: 'Supplier', field: 'supplier' },
+    { label: 'Warehouse', field: 'warehouse' },
+    { label: 'Item Code', field: 'item_code' },
+    { label: 'Item Name', field: 'item_name' },
+    { label: 'Quantity', field: 'quantity' },
+    { label: 'Unit Cost', field: 'unit_cost', format: (val) => formatCurrency(val) },
+    { label: 'Total Value', field: 'total_value', format: (val) => formatCurrency(val) },
+  ]
 }
 
 // Keyboard Shortcuts

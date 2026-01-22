@@ -49,7 +49,7 @@ const routes = [
         meta: { roles: ['admin', 'manager'] },
       },
 
-      // Stock Routes
+      // Stock Routes - SAP B1 HANA Inventory Module
       {
         path: 'stock/items',
         component: () => import('pages/stock/ItemsPage.vue'),
@@ -58,6 +58,16 @@ const routes = [
       {
         path: 'stock/suppliers',
         component: () => import('pages/stock/SuppliersPage.vue'),
+        meta: { roles: ['admin', 'manager'] },
+      },
+      {
+        path: 'stock/warehouses',
+        component: () => import('pages/stock/WarehousesPage.vue'),
+        meta: { roles: ['admin', 'manager'] },
+      },
+      {
+        path: 'stock/price-lists',
+        component: () => import('pages/stock/PriceListsPage.vue'),
         meta: { roles: ['admin', 'manager'] },
       },
       {
@@ -73,6 +83,16 @@ const routes = [
       {
         path: 'stock/gin',
         component: () => import('pages/stock/GINPage.vue'),
+        meta: { roles: ['admin', 'manager'] },
+      },
+      {
+        path: 'stock/cycle-count',
+        component: () => import('pages/stock/CycleCountPage.vue'),
+        meta: { roles: ['admin', 'manager'] },
+      },
+      {
+        path: 'stock/pick-pack',
+        component: () => import('pages/stock/PickPackPage.vue'),
         meta: { roles: ['admin', 'manager'] },
       },
 
@@ -158,6 +178,16 @@ const routes = [
       {
         path: 'reports/po',
         component: () => import('pages/reports/POReportPage.vue'),
+        meta: { roles: ['admin', 'manager'] },
+      },
+      {
+        path: 'reports/inventory-audit',
+        component: () => import('pages/reports/InventoryAuditReport.vue'),
+        meta: { roles: ['admin', 'manager'] },
+      },
+      {
+        path: 'reports/inventory-status',
+        component: () => import('pages/reports/InventoryStatusReport.vue'),
         meta: { roles: ['admin', 'manager'] },
       },
 

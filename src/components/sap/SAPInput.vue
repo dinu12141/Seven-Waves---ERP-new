@@ -117,6 +117,10 @@ defineEmits(['update:modelValue'])
     min-height: 32px;
   }
 
+  :deep(.q-field__control:before) {
+    border-color: #e0e0e0;
+  }
+
   :deep(.q-field__native) {
     font-size: 12px;
     padding: 4px 8px;

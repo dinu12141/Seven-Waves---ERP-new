@@ -5,7 +5,7 @@
     :persistent="persistent"
     :maximized="maximized"
   >
-    <q-card class="sap-dialog" :style="{ width: width, minWidth: minWidth }">
+    <q-card class="sap-dialog" :style="{ width: width, minWidth: minWidth }" flat bordered>
       <!-- Header -->
       <q-card-section class="sap-dialog-header">
         <div class="sap-dialog-title">
@@ -124,8 +124,10 @@ defineEmits(['update:modelValue', 'confirm'])
   display: flex;
   align-items: center;
   padding: 12px 16px;
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-  color: #fff;
+  padding: 12px 16px;
+  background: #fff;
+  color: #333;
+  border-bottom: 1px solid #e0e0e0;
 }
 
 .sap-dialog-title {

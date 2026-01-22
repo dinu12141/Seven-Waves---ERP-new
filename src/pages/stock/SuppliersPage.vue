@@ -129,12 +129,14 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { useQuasar } from 'quasar'
+import { useRoute } from 'vue-router'
 import { useStockStore } from 'src/stores/stockStore'
 import { SAPTable, SAPCard, SAPToolbar, SAPDialog, SAPInput, GoldenArrow } from 'src/components/sap'
 
 const $q = useQuasar()
+const route = useRoute()
 const stockStore = useStockStore()
 
 const showDialog = ref(false)
@@ -228,6 +230,17 @@ function viewPurchaseHistory(supplier) {
   $q.notify({ type: 'info', message: `Purchase history for ${supplier.name} coming soon` })
 }
 
+// Check if route has supplier ID query param
+async function checkRouteParams() {
+  const supplierId = route.query.id
+  if (supplierId) {
+    const supplier = stockStore.suppliers.find((s) => s.id === supplierId)
+    if (supplier) {
+      editSupplier(supplier)
+    }
+  }
+}
+
 // Keyboard Shortcuts
 function handleKeydown(e) {
   // Ctrl + A: Add Record
@@ -244,7 +257,16 @@ function handleKeydown(e) {
 onMounted(async () => {
   window.addEventListener('keydown', handleKeydown)
   await loadData()
+  checkRouteParams()
 })
+
+// Watch for route changes
+watch(
+  () => route.query.id,
+  () => {
+    checkRouteParams()
+  },
+)
 
 onUnmounted(() => {
   window.removeEventListener('keydown', handleKeydown)

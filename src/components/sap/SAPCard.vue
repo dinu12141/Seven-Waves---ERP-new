@@ -37,7 +37,7 @@ defineProps({
   },
   flat: {
     type: Boolean,
-    default: false,
+    default: true,
   },
   bordered: {
     type: Boolean,

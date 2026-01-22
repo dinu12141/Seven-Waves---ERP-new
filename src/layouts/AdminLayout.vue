@@ -115,12 +115,17 @@
             </q-item>
           </q-expansion-item>
 
-          <!-- Stock Management -->
+          <!-- Stock Management - SAP B1 HANA -->
           <q-expansion-item
             icon="inventory_2"
             label="Stock"
             v-if="authStore.hasPermission(['admin', 'manager'])"
+            default-opened
           >
+            <!-- Master Data -->
+            <q-item-label header class="text-grey-7 q-pl-lg" style="font-size: 10px"
+              >MASTER DATA</q-item-label
+            >
             <q-item clickable v-ripple to="/stock/items" active-class="nav-active" :inset-level="1">
               <q-item-section>Items</q-item-section>
             </q-item>
@@ -133,14 +138,60 @@
             >
               <q-item-section>Suppliers</q-item-section>
             </q-item>
+            <q-item
+              clickable
+              v-ripple
+              to="/stock/warehouses"
+              active-class="nav-active"
+              :inset-level="1"
+            >
+              <q-item-section>Warehouses & Bins</q-item-section>
+            </q-item>
+            <q-item
+              clickable
+              v-ripple
+              to="/stock/price-lists"
+              active-class="nav-active"
+              :inset-level="1"
+            >
+              <q-item-section>Price Lists</q-item-section>
+            </q-item>
+
+            <!-- Transactions -->
+            <q-item-label header class="text-grey-7 q-pl-lg" style="font-size: 10px"
+              >TRANSACTIONS</q-item-label
+            >
             <q-item clickable v-ripple to="/stock/po" active-class="nav-active" :inset-level="1">
               <q-item-section>Purchase Orders</q-item-section>
             </q-item>
             <q-item clickable v-ripple to="/stock/grn" active-class="nav-active" :inset-level="1">
-              <q-item-section>GRN</q-item-section>
+              <q-item-section>Goods Receipt (GRN)</q-item-section>
             </q-item>
             <q-item clickable v-ripple to="/stock/gin" active-class="nav-active" :inset-level="1">
-              <q-item-section>GIN</q-item-section>
+              <q-item-section>Goods Issue (GIN)</q-item-section>
+            </q-item>
+
+            <!-- Inventory Operations -->
+            <q-item-label header class="text-grey-7 q-pl-lg" style="font-size: 10px"
+              >OPERATIONS</q-item-label
+            >
+            <q-item
+              clickable
+              v-ripple
+              to="/stock/cycle-count"
+              active-class="nav-active"
+              :inset-level="1"
+            >
+              <q-item-section>Cycle Counting</q-item-section>
+            </q-item>
+            <q-item
+              clickable
+              v-ripple
+              to="/stock/pick-pack"
+              active-class="nav-active"
+              :inset-level="1"
+            >
+              <q-item-section>Pick & Pack</q-item-section>
             </q-item>
           </q-expansion-item>
 
@@ -293,6 +344,29 @@
             </q-item>
             <q-item clickable v-ripple to="/reports/po" active-class="nav-active" :inset-level="1">
               <q-item-section>PO Report</q-item-section>
+            </q-item>
+
+            <!-- Inventory Reports - SAP Style -->
+            <q-item-label header class="text-grey-7 q-pl-lg" style="font-size: 10px"
+              >INVENTORY</q-item-label
+            >
+            <q-item
+              clickable
+              v-ripple
+              to="/reports/inventory-audit"
+              active-class="nav-active"
+              :inset-level="1"
+            >
+              <q-item-section>Audit Trail (OINM)</q-item-section>
+            </q-item>
+            <q-item
+              clickable
+              v-ripple
+              to="/reports/inventory-status"
+              active-class="nav-active"
+              :inset-level="1"
+            >
+              <q-item-section>Inventory Status</q-item-section>
             </q-item>
           </q-expansion-item>
 

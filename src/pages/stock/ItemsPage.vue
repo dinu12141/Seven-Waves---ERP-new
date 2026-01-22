@@ -800,6 +800,31 @@ async function viewItem(item) {
   loadingHistory.value = false
 }
 
+// Check if route has item ID query param
+async function checkRouteParams() {
+  const itemId = route.query.id
+  if (itemId) {
+    const item = stockStore.items.find((i) => i.id === itemId)
+    if (item) {
+      viewItem(item)
+    }
+  }
+}
+
+onMounted(async () => {
+  await loadData()
+  checkRouteParams()
+})
+
+// Watch for route changes (e.g. if user navigates back/forward)
+import { watch } from 'vue'
+watch(
+  () => route.query.id,
+  () => {
+    checkRouteParams()
+  },
+)
+
 async function saveItem() {
   saving.value = true
   try {

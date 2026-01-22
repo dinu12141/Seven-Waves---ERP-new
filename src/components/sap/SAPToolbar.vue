@@ -49,14 +49,24 @@
           <q-tooltip>Refresh</q-tooltip>
         </q-btn>
         <q-btn
-          v-if="showExport"
+          v-if="showExportExcel"
           flat
           dense
-          icon="download"
-          class="sap-toolbar-btn"
-          @click="$emit('export')"
+          icon="table_view"
+          class="sap-toolbar-btn text-positive"
+          @click="$emit('export-excel')"
         >
-          <q-tooltip>Export</q-tooltip>
+          <q-tooltip>Export to Excel</q-tooltip>
+        </q-btn>
+        <q-btn
+          v-if="showExportPdf"
+          flat
+          dense
+          icon="picture_as_pdf"
+          class="sap-toolbar-btn text-negative"
+          @click="$emit('export-pdf')"
+        >
+          <q-tooltip>Export to PDF</q-tooltip>
         </q-btn>
         <q-btn
           v-if="showFilter"
@@ -111,7 +121,11 @@ defineProps({
     type: Boolean,
     default: true,
   },
-  showExport: {
+  showExportExcel: {
+    type: Boolean,
+    default: false,
+  },
+  showExportPdf: {
     type: Boolean,
     default: false,
   },
@@ -121,7 +135,7 @@ defineProps({
   },
 })
 
-defineEmits(['back', 'add', 'refresh', 'export', 'filter'])
+defineEmits(['back', 'add', 'refresh', 'export-excel', 'export-pdf', 'filter'])
 </script>
 
 <style lang="scss" scoped>
