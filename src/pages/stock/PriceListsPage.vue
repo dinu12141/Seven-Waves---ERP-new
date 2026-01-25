@@ -91,12 +91,13 @@
               <template #body-cell-price="props">
                 <q-td :props="props" class="text-right">
                   <q-input
-                    v-model.number="props.row.price"
+                    v-model="props.row.price"
                     type="number"
                     dense
                     outlined
                     style="width: 110px"
                     @blur="updateItemPrice(props.row)"
+                    @click.stop
                   />
                 </q-td>
               </template>
@@ -104,13 +105,14 @@
               <template #body-cell-discount="props">
                 <q-td :props="props" class="text-right">
                   <q-input
-                    v-model.number="props.row.discount_percent"
+                    v-model="props.row.discount_percent"
                     type="number"
                     dense
                     outlined
                     suffix="%"
                     style="width: 80px"
                     @blur="updateItemPrice(props.row)"
+                    @click.stop
                   />
                 </q-td>
               </template>
@@ -243,8 +245,8 @@
               searchable
               :rules="requiredRules"
             >
-              <template #option="{ opt }">
-                <q-item dense>
+              <template #option="{ opt, itemProps }">
+                <q-item v-bind="itemProps" dense>
                   <q-item-section>
                     <q-item-label>{{ opt.item_code }} - {{ opt.item_name }}</q-item-label>
                     <q-item-label caption

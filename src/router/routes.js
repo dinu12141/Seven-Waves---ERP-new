@@ -71,6 +71,11 @@ const routes = [
         meta: { roles: ['admin', 'manager'] },
       },
       {
+        path: 'stock/procurement',
+        component: () => import('pages/stock/ProcurementPage.vue'),
+        meta: { roles: ['admin', 'manager'] },
+      },
+      {
         path: 'stock/po',
         component: () => import('pages/stock/PurchaseOrderPage.vue'),
         meta: { roles: ['admin', 'manager'] },
@@ -93,6 +98,16 @@ const routes = [
       {
         path: 'stock/pick-pack',
         component: () => import('pages/stock/PickPackPage.vue'),
+        meta: { roles: ['admin', 'manager'] },
+      },
+      {
+        path: 'stock/recipes',
+        component: () => import('pages/stock/RecipesPage.vue'),
+        meta: { roles: ['admin', 'manager'] },
+      },
+      {
+        path: 'stock/transfers',
+        component: () => import('pages/stock/StockTransferPage.vue'),
         meta: { roles: ['admin', 'manager'] },
       },
 

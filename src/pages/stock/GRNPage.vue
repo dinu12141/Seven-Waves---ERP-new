@@ -13,64 +13,66 @@
     />
 
     <!-- Main Content -->
-    <div class="sap-page-content">
-      <!-- GRN Table -->
-      <SAPCard title="GRN List" icon="list" no-padding>
-        <SAPTable
-          :rows="stockStore.goodsReceiptNotes"
-          :columns="columns"
-          :loading="stockStore.loading"
-          :show-drill-down="true"
-          row-key="id"
-          @row-click="viewGRN"
-          @drill-down="viewGRN"
-        >
-          <template #body-cell-doc_number="props">
-            <q-td :props="props">
-              <span class="doc-number">{{ props.value }}</span>
-            </q-td>
-          </template>
+    <q-no-ssr>
+      <div class="sap-page-content">
+        <!-- GRN Table -->
+        <SAPCard title="GRN List" icon="list" no-padding>
+          <SAPTable
+            :rows="stockStore.goodsReceiptNotes"
+            :columns="columns"
+            :loading="stockStore.loading"
+            :show-drill-down="true"
+            row-key="id"
+            @row-click="viewGRN"
+            @drill-down="viewGRN"
+          >
+            <template #body-cell-doc_number="props">
+              <q-td :props="props">
+                <span class="doc-number">{{ props.value }}</span>
+              </q-td>
+            </template>
 
-          <template #body-cell-status="props">
-            <q-td :props="props">
-              <q-badge :color="getStatusColor(props.value)" :label="props.value" />
-            </q-td>
-          </template>
+            <template #body-cell-status="props">
+              <q-td :props="props">
+                <q-badge :color="getStatusColor(props.value)" :label="props.value" />
+              </q-td>
+            </template>
 
-          <template #body-cell-total_amount="props">
-            <q-td :props="props" class="text-right text-bold">
-              {{ formatCurrency(props.value) }}
-            </q-td>
-          </template>
+            <template #body-cell-total_amount="props">
+              <q-td :props="props" class="text-right text-bold">
+                {{ formatCurrency(props.value) }}
+              </q-td>
+            </template>
 
-          <template #body-cell-actions="props">
-            <q-td :props="props" class="actions-cell">
-              <q-btn
-                v-if="props.row.status === 'draft' || props.row.status === 'pending'"
-                flat
-                dense
-                round
-                size="sm"
-                icon="check_circle"
-                color="positive"
-                @click.stop="completeGRN(props.row)"
-              >
-                <q-tooltip>Complete GRN (Update Stock)</q-tooltip>
-              </q-btn>
-              <q-btn
-                flat
-                dense
-                round
-                size="sm"
-                icon="visibility"
-                color="grey"
-                @click.stop="viewGRN(props.row)"
-              />
-            </q-td>
-          </template>
-        </SAPTable>
-      </SAPCard>
-    </div>
+            <template #body-cell-actions="props">
+              <q-td :props="props" class="actions-cell">
+                <q-btn
+                  v-if="props.row.status === 'draft' || props.row.status === 'pending'"
+                  flat
+                  dense
+                  round
+                  size="sm"
+                  icon="check_circle"
+                  color="positive"
+                  @click.stop="completeGRN(props.row)"
+                >
+                  <q-tooltip>Complete GRN (Update Stock)</q-tooltip>
+                </q-btn>
+                <q-btn
+                  flat
+                  dense
+                  round
+                  size="sm"
+                  icon="visibility"
+                  color="grey"
+                  @click.stop="viewGRN(props.row)"
+                />
+              </q-td>
+            </template>
+          </SAPTable>
+        </SAPCard>
+      </div>
+    </q-no-ssr>
 
     <!-- Create GRN Dialog -->
     <SAPDialog
@@ -135,6 +137,9 @@
           <div class="col-12">
             <div class="section-title q-mt-md q-mb-sm">
               Items to Receive
+              <div v-if="!selectedPOId" class="text-caption text-grey">
+                * Select items from Master Data
+              </div>
               <q-btn
                 v-if="!selectedPOId"
                 dense
@@ -160,8 +165,29 @@
               <template #body="props">
                 <q-tr :props="props">
                   <q-td key="lineNum">{{ props.row.lineNum }}</q-td>
-                  <q-td key="item">
-                    {{ props.row.item_description || getItemName(props.row.item_id) }}
+                  <q-td key="item" style="min-width: 200px">
+                    <SAPSelect
+                      v-if="!selectedPOId"
+                      v-model="props.row.item_id"
+                      :options="stockStore.activeItems"
+                      option-label="item_name"
+                      option-value="id"
+                      label="Select Item"
+                      dense
+                      emit-value
+                      map-options
+                      @update:model-value="(val) => onItemSelect(val, props.row)"
+                    >
+                      <template #option="scope">
+                        <q-item v-bind="scope.itemProps">
+                          <q-item-section>
+                            <q-item-label>{{ scope.opt.item_name }}</q-item-label>
+                            <q-item-label caption>{{ scope.opt.item_code }}</q-item-label>
+                          </q-item-section>
+                        </q-item>
+                      </template>
+                    </SAPSelect>
+                    <span v-else>{{ props.row.item_description }}</span>
                   </q-td>
                   <q-td key="ordered">{{ props.row.ordered_qty || '—' }}</q-td>
                   <q-td key="received">{{ props.row.already_received || 0 }}</q-td>
@@ -189,6 +215,17 @@
                   </q-td>
                   <q-td key="line_total" class="text-right text-bold">
                     {{ formatCurrency(props.row.line_total) }}
+                  </q-td>
+                  <q-td key="actions" v-if="!selectedPOId">
+                    <q-btn
+                      flat
+                      round
+                      dense
+                      icon="delete"
+                      color="negative"
+                      size="sm"
+                      @click="removeLine(props.rowIndex)"
+                    />
                   </q-td>
                 </q-tr>
               </template>
@@ -341,11 +378,6 @@ function formatCurrency(value) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'LKR' }).format(value)
 }
 
-function getItemName(itemId) {
-  const item = stockStore.items.find((i) => i.id === itemId)
-  return item ? item.item_name : '—'
-}
-
 async function loadData() {
   await Promise.all([
     stockStore.fetchGoodsReceiptNotes(),
@@ -395,6 +427,23 @@ function onPOSelect(poId) {
       line_total: (line.quantity - (line.received_quantity || 0)) * line.unit_price,
     }))
   }
+}
+
+function onItemSelect(itemId, row) {
+  const item = stockStore.items.find((i) => i.id === itemId)
+  if (item) {
+    row.item_description = item.item_name
+    row.uom_id = item.base_uom_id
+    // Auto-fill cost (Last Purchase Price or Moving Average)
+    row.unit_cost = item.purchase_price || 0
+    calcLineTotal(row)
+  }
+}
+
+function removeLine(index) {
+  grnLines.value.splice(index, 1)
+  // Re-number
+  grnLines.value.forEach((l, i) => (l.lineNum = i + 1))
 }
 
 function addLine() {

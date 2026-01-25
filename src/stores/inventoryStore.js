@@ -41,28 +41,26 @@ export const useInventoryStore = defineStore('inventory', () => {
   // GETTERS
   // ============================================
 
-  const activeBinLocations = computed(() =>
-    binLocations.value.filter(b => b.is_active)
-  )
+  const activeBinLocations = computed(() => binLocations.value.filter((b) => b.is_active))
 
-  const activePriceLists = computed(() =>
-    priceLists.value.filter(p => p.is_active)
-  )
+  const activePriceLists = computed(() => priceLists.value.filter((p) => p.is_active))
 
-  const defaultPriceList = computed(() =>
-    priceLists.value.find(p => p.is_default) || priceLists.value[0]
+  const defaultPriceList = computed(
+    () => priceLists.value.find((p) => p.is_default) || priceLists.value[0],
   )
 
   const pendingSalesOrders = computed(() =>
-    salesOrders.value.filter(so => so.status === 'approved')
+    salesOrders.value.filter((so) => so.status === 'approved'),
   )
 
   const openPickLists = computed(() =>
-    pickLists.value.filter(pl => pl.status === 'open' || pl.status === 'in_progress')
+    pickLists.value.filter((pl) => pl.status === 'open' || pl.status === 'in_progress'),
   )
 
   const pendingCycleCounts = computed(() =>
-    cycleCounts.value.filter(cc => cc.status === 'in_progress' || cc.status === 'pending_approval')
+    cycleCounts.value.filter(
+      (cc) => cc.status === 'in_progress' || cc.status === 'pending_approval',
+    ),
   )
 
   // ============================================
@@ -125,7 +123,7 @@ export const useInventoryStore = defineStore('inventory', () => {
         .single()
 
       if (updateError) throw updateError
-      const index = binLocations.value.findIndex(b => b.id === id)
+      const index = binLocations.value.findIndex((b) => b.id === id)
       if (index !== -1) binLocations.value[index] = data
       return { success: true, data }
     } catch (err) {
@@ -145,7 +143,8 @@ export const useInventoryStore = defineStore('inventory', () => {
       loading.value = true
       const { data, error: fetchError } = await supabase
         .from('cycle_counts')
-        .select(`
+        .select(
+          `
           *,
           warehouse:warehouses(id, name, code),
           counted_by_user:profiles!cycle_counts_counted_by_fkey(full_name),
@@ -155,7 +154,8 @@ export const useInventoryStore = defineStore('inventory', () => {
             item:items(id, item_code, item_name),
             bin_location:bin_locations(id, bin_code)
           )
-        `)
+        `,
+        )
         .order('created_at', { ascending: false })
 
       if (fetchError) throw fetchError
@@ -194,7 +194,7 @@ export const useInventoryStore = defineStore('inventory', () => {
         batch_number: line.batch_number,
         system_quantity: line.system_quantity,
         unit_cost: line.unit_cost,
-        count_status: 'pending'
+        count_status: 'pending',
       }))
 
       const { error: linesError } = await supabase.from('cycle_count_lines').insert(ccLines)
@@ -230,7 +230,7 @@ export const useInventoryStore = defineStore('inventory', () => {
           variance_quantity: variance,
           variance_value: varianceValue,
           count_status: 'counted',
-          remarks
+          remarks,
         })
         .eq('id', lineId)
 
@@ -251,7 +251,7 @@ export const useInventoryStore = defineStore('inventory', () => {
           status: 'completed',
           approved_by: approvedBy,
           approved_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('id', ccId)
         .select()
@@ -277,7 +277,8 @@ export const useInventoryStore = defineStore('inventory', () => {
       loading.value = true
       const { data, error: fetchError } = await supabase
         .from('pick_lists')
-        .select(`
+        .select(
+          `
           *,
           warehouse:warehouses(id, name, code),
           assigned_user:profiles!pick_lists_assigned_to_fkey(full_name),
@@ -287,7 +288,8 @@ export const useInventoryStore = defineStore('inventory', () => {
             from_bin:bin_locations!pick_list_lines_from_bin_location_id_fkey(id, bin_code),
             uom:units_of_measure(id, code, name)
           )
-        `)
+        `,
+        )
         .order('created_at', { ascending: false })
 
       if (fetchError) throw fetchError
@@ -313,7 +315,7 @@ export const useInventoryStore = defineStore('inventory', () => {
         .insert({
           ...plData,
           doc_number: docNum,
-          total_items: lines.length
+          total_items: lines.length,
         })
         .select()
         .single()
@@ -330,7 +332,7 @@ export const useInventoryStore = defineStore('inventory', () => {
         from_bin_location_id: line.from_bin_location_id,
         required_quantity: line.required_quantity,
         uom_id: line.uom_id,
-        pick_status: 'pending'
+        pick_status: 'pending',
       }))
 
       const { error: linesError } = await supabase.from('pick_list_lines').insert(plLines)
@@ -353,7 +355,7 @@ export const useInventoryStore = defineStore('inventory', () => {
         .update({
           picked_quantity: pickedQty,
           pick_status: 'picked',
-          picked_at: new Date().toISOString()
+          picked_at: new Date().toISOString(),
         })
         .eq('id', lineId)
 
@@ -374,7 +376,7 @@ export const useInventoryStore = defineStore('inventory', () => {
       loading.value = true
       const { data, error: fetchError } = await supabase
         .from('price_lists')
-        .select('*, base_price_list:price_lists!price_lists_base_price_list_id_fkey(id, price_list_name)')
+        .select('*')
         .order('price_list_name')
 
       if (fetchError) throw fetchError
@@ -403,6 +405,9 @@ export const useInventoryStore = defineStore('inventory', () => {
       return { success: true, data }
     } catch (err) {
       console.error('Error creating price list:', err)
+      if (err.code === '23505' || err.status === 409) {
+        return { success: false, error: 'Price List with this code or name already exists.' }
+      }
       return { success: false, error: err.message }
     } finally {
       loading.value = false
@@ -413,11 +418,13 @@ export const useInventoryStore = defineStore('inventory', () => {
     try {
       const { data, error: fetchError } = await supabase
         .from('price_list_items')
-        .select(`
+        .select(
+          `
           *,
           item:items(id, item_code, item_name),
           uom:units_of_measure(id, code, name)
-        `)
+        `,
+        )
         .eq('price_list_id', priceListId)
         .order('created_at')
 
@@ -478,7 +485,8 @@ export const useInventoryStore = defineStore('inventory', () => {
       loading.value = true
       const { data, error: fetchError } = await supabase
         .from('sales_orders')
-        .select(`
+        .select(
+          `
           *,
           warehouse:warehouses(id, name, code),
           price_list:price_lists(id, price_list_name),
@@ -488,7 +496,8 @@ export const useInventoryStore = defineStore('inventory', () => {
             item:items(id, item_code, item_name),
             uom:units_of_measure(id, code, name)
           )
-        `)
+        `,
+        )
         .order('created_at', { ascending: false })
 
       if (fetchError) throw fetchError
@@ -509,8 +518,11 @@ export const useInventoryStore = defineStore('inventory', () => {
 
       const { data: docNum } = await supabase.rpc('generate_doc_number', { p_doc_type: 'SO' })
 
-      const subtotal = lines.reduce((sum, l) => sum + (l.quantity * l.unit_price), 0)
-      const taxAmount = lines.reduce((sum, l) => sum + (l.quantity * l.unit_price * (l.tax_percent || 0) / 100), 0)
+      const subtotal = lines.reduce((sum, l) => sum + l.quantity * l.unit_price, 0)
+      const taxAmount = lines.reduce(
+        (sum, l) => sum + (l.quantity * l.unit_price * (l.tax_percent || 0)) / 100,
+        0,
+      )
       const discountAmount = subtotal * ((soData.discount_percent || 0) / 100)
 
       const { data: so, error: soError } = await supabase
@@ -521,7 +533,7 @@ export const useInventoryStore = defineStore('inventory', () => {
           subtotal,
           tax_amount: taxAmount,
           discount_amount: discountAmount,
-          total_amount: subtotal + taxAmount - discountAmount
+          total_amount: subtotal + taxAmount - discountAmount,
         })
         .select()
         .single()
@@ -541,7 +553,7 @@ export const useInventoryStore = defineStore('inventory', () => {
         tax_percent: line.tax_percent || 0,
         line_total: line.quantity * line.unit_price * (1 - (line.discount_percent || 0) / 100),
         warehouse_id: line.warehouse_id || soData.warehouse_id,
-        status: 'open'
+        status: 'open',
       }))
 
       const { error: linesError } = await supabase.from('sales_order_lines').insert(soLines)
@@ -566,7 +578,7 @@ export const useInventoryStore = defineStore('inventory', () => {
           status: 'approved',
           approved_by: approvedBy,
           approved_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('id', soId)
         .select()
@@ -592,7 +604,8 @@ export const useInventoryStore = defineStore('inventory', () => {
       loading.value = true
       const { data, error: fetchError } = await supabase
         .from('delivery_documents')
-        .select(`
+        .select(
+          `
           *,
           warehouse:warehouses(id, name, code),
           sales_order:sales_orders(id, doc_number),
@@ -602,7 +615,8 @@ export const useInventoryStore = defineStore('inventory', () => {
             item:items(id, item_code, item_name),
             uom:units_of_measure(id, code, name)
           )
-        `)
+        `,
+        )
         .order('created_at', { ascending: false })
 
       if (fetchError) throw fetchError
@@ -623,7 +637,7 @@ export const useInventoryStore = defineStore('inventory', () => {
 
       const { data: docNum } = await supabase.rpc('generate_doc_number', { p_doc_type: 'DEL' })
 
-      const subtotal = lines.reduce((sum, l) => sum + (l.quantity * (l.unit_price || 0)), 0)
+      const subtotal = lines.reduce((sum, l) => sum + l.quantity * (l.unit_price || 0), 0)
 
       const { data: del, error: delError } = await supabase
         .from('delivery_documents')
@@ -631,7 +645,7 @@ export const useInventoryStore = defineStore('inventory', () => {
           ...delData,
           doc_number: docNum,
           subtotal,
-          total_amount: subtotal
+          total_amount: subtotal,
         })
         .select()
         .single()
@@ -651,7 +665,7 @@ export const useInventoryStore = defineStore('inventory', () => {
         line_total: line.quantity * (line.unit_price || 0),
         warehouse_id: line.warehouse_id || delData.warehouse_id,
         bin_location_id: line.bin_location_id,
-        batch_number: line.batch_number
+        batch_number: line.batch_number,
       }))
 
       const { error: linesError } = await supabase.from('delivery_document_lines').insert(delLines)
@@ -676,7 +690,7 @@ export const useInventoryStore = defineStore('inventory', () => {
           status: 'posted',
           delivered_by: deliveredBy,
           delivered_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('id', delId)
         .select()
@@ -702,13 +716,15 @@ export const useInventoryStore = defineStore('inventory', () => {
       loading.value = true
       let query = supabase
         .from('stock_transactions')
-        .select(`
+        .select(
+          `
           *,
           item:items(id, item_code, item_name),
           warehouse:warehouses(id, name, code),
           bin_location:bin_locations(id, bin_code),
           created_by_user:profiles!stock_transactions_created_by_fkey(full_name)
-        `)
+        `,
+        )
         .order('created_at', { ascending: false })
         .limit(500)
 
@@ -740,11 +756,13 @@ export const useInventoryStore = defineStore('inventory', () => {
       loading.value = true
       let query = supabase
         .from('journal_entries')
-        .select(`
+        .select(
+          `
           *,
           created_by_user:profiles!journal_entries_created_by_fkey(full_name),
           journal_entry_lines(*)
-        `)
+        `,
+        )
         .order('created_at', { ascending: false })
         .limit(200)
 
@@ -780,9 +798,8 @@ export const useInventoryStore = defineStore('inventory', () => {
         fetchCycleCounts(),
         fetchPickLists(),
         fetchSalesOrders(),
-        fetchDeliveryDocuments()
+        fetchDeliveryDocuments(),
       ])
-
     } catch (err) {
       console.error('Error initializing inventory store:', err)
       error.value = err.message
@@ -865,6 +882,6 @@ export const useInventoryStore = defineStore('inventory', () => {
 
     // Init
     initializeInventoryStore,
-    clearError
+    clearError,
   }
 })

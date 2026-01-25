@@ -26,52 +26,53 @@
         </q-btn>
 
         <!-- User Menu -->
-        <q-btn flat round class="user-btn">
-          <q-avatar size="36px" color="primary" text-color="white">
-            {{ userInitials }}
-          </q-avatar>
-          <q-menu>
-            <q-list style="min-width: 200px">
-              <q-item-label header>{{ authStore.userName }}</q-item-label>
-              <q-item-label caption class="q-px-md">{{ authStore.userRole }}</q-item-label>
-              <q-separator />
-              <q-item clickable v-close-popup>
-                <q-item-section avatar>
-                  <q-icon name="person" />
-                </q-item-section>
-                <q-item-section>Profile</q-item-section>
-              </q-item>
-              <q-item clickable v-close-popup>
-                <q-item-section avatar>
-                  <q-icon name="settings" />
-                </q-item-section>
-                <q-item-section>Settings</q-item-section>
-              </q-item>
-              <q-separator />
-              <q-item clickable v-close-popup @click="handleLogout">
-                <q-item-section avatar>
-                  <q-icon name="logout" color="negative" />
-                </q-item-section>
-                <q-item-section class="text-negative">Logout</q-item-section>
-              </q-item>
-            </q-list>
-          </q-menu>
-        </q-btn>
+        <q-no-ssr>
+          <q-btn flat round class="user-btn">
+            <q-avatar size="36px" color="primary" text-color="white">
+              {{ userInitials }}
+            </q-avatar>
+            <q-menu>
+              <q-list style="min-width: 200px">
+                <q-item-label header>{{ authStore.userName }}</q-item-label>
+                <q-item-label caption class="q-px-md">{{ authStore.userRole }}</q-item-label>
+                <q-separator />
+                <q-item clickable v-close-popup>
+                  <q-item-section avatar>
+                    <q-icon name="person" />
+                  </q-item-section>
+                  <q-item-section>Profile</q-item-section>
+                </q-item>
+                <q-item clickable v-close-popup>
+                  <q-item-section avatar>
+                    <q-icon name="settings" />
+                  </q-item-section>
+                  <q-item-section>Settings</q-item-section>
+                </q-item>
+                <q-separator />
+                <q-item clickable v-close-popup @click="handleLogout">
+                  <q-item-section avatar>
+                    <q-icon name="logout" color="negative" />
+                  </q-item-section>
+                  <q-item-section class="text-negative">Logout</q-item-section>
+                </q-item>
+              </q-list>
+            </q-menu>
+          </q-btn>
+        </q-no-ssr>
       </q-toolbar>
     </q-header>
 
     <!-- Sidebar -->
-    <q-no-ssr>
-      <q-drawer
-        v-model="drawerOpen"
-        show-if-above
-        :mini="miniState"
-        @mouseover="miniState = false"
-        @mouseout="miniState = true"
-        bordered
-        class="app-drawer"
-      >
-        <q-scroll-area class="fit">
+    <q-drawer
+      v-model="drawerOpen"
+      :mini="miniState"
+      @mouseover="miniState = false"
+      @mouseout="miniState = true"
+      bordered
+      class="app-drawer"
+    >
+      <q-scroll-area class="fit">
+        <q-no-ssr>
           <q-list padding>
             <!-- Dashboard -->
             <q-item clickable v-ripple to="/dashboard" active-class="nav-active">
@@ -175,6 +176,15 @@
               >
                 <q-item-section>Price Lists</q-item-section>
               </q-item>
+              <q-item
+                clickable
+                v-ripple
+                to="/stock/recipes"
+                active-class="nav-active"
+                :inset-level="1"
+              >
+                <q-item-section>Recipes / BOM</q-item-section>
+              </q-item>
 
               <!-- Transactions -->
               <q-item-label header class="text-grey-7 q-pl-lg" style="font-size: 10px"
@@ -189,6 +199,15 @@
               <q-item clickable v-ripple to="/stock/gin" active-class="nav-active" :inset-level="1">
                 <q-item-section>Goods Issue (GIN)</q-item-section>
               </q-item>
+              <q-item
+                clickable
+                v-ripple
+                to="/stock/transfers"
+                active-class="nav-active"
+                :inset-level="1"
+              >
+                <q-item-section>Stock Transfers</q-item-section>
+              </q-item>
 
               <!-- Inventory Operations -->
               <q-item-label header class="text-grey-7 q-pl-lg" style="font-size: 10px"
@@ -202,6 +221,15 @@
                 :inset-level="1"
               >
                 <q-item-section>Cycle Counting</q-item-section>
+              </q-item>
+              <q-item
+                clickable
+                v-ripple
+                to="/stock/procurement"
+                active-class="nav-active"
+                :inset-level="1"
+              >
+                <q-item-section>Procurement Dashboard</q-item-section>
               </q-item>
               <q-item
                 clickable
@@ -427,9 +455,9 @@
               </q-item>
             </template>
           </q-list>
-        </q-scroll-area>
-      </q-drawer>
-    </q-no-ssr>
+        </q-no-ssr>
+      </q-scroll-area>
+    </q-drawer>
 
     <!-- Page Container -->
     <q-page-container>
@@ -439,15 +467,23 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useQuasar } from 'quasar'
 import { useAuthStore } from 'src/stores/authStore'
 
+const $q = useQuasar()
 const router = useRouter()
 const authStore = useAuthStore()
 
-const drawerOpen = ref(true)
+const drawerOpen = ref(false)
 const miniState = ref(true)
+
+onMounted(() => {
+  if ($q.screen.gt.sm) {
+    drawerOpen.value = true
+  }
+})
 
 const userInitials = computed(() => {
   const name = authStore.userName

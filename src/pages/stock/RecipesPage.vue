@@ -438,16 +438,14 @@ const ingredientColumns = [
 ]
 
 // Computed
-const salesItems = computed(() => stockStore.items.filter((i) => i.is_sales_item && i.is_active))
+const salesItems = computed(() => stockStore.salesItems)
 const salesItemsCount = computed(() => salesItems.value.length)
 
-const purchasedItems = computed(() =>
-  stockStore.items.filter((i) => i.is_purchase_item && i.is_active),
-)
+const purchasedItems = computed(() => stockStore.purchaseItems)
 
 const targetWarehouses = computed(() => {
-  // Filter for K1 and K2 warehouses
-  return stockStore.warehouses.filter((w) => w.code === 'K1' || w.code === 'K2')
+  // Filter for WH02 and WH03 warehouses (Kitchens)
+  return stockStore.warehouses.filter((w) => w.code === 'WH02' || w.code === 'WH03')
 })
 
 const totalRecipeCost = computed(() => {
@@ -505,8 +503,9 @@ function calculateLineCost(line) {
 }
 
 function getWarehouseColor(code) {
-  if (code === 'K1') return 'deep-orange'
-  if (code === 'K2') return 'purple'
+  if (code === 'WH01') return 'primary'
+  if (code === 'WH02') return 'deep-orange'
+  if (code === 'WH03') return 'purple'
   return 'primary'
 }
 

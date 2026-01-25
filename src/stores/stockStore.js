@@ -31,6 +31,13 @@ export const useStockStore = defineStore('stock', () => {
   // ============================================
 
   const activeItems = computed(() => items.value.filter((i) => i.is_active))
+
+  // Item Type Getters
+  const inventoryItems = computed(() =>
+    items.value.filter((i) => i.is_active && i.is_inventory_item),
+  )
+  const salesItems = computed(() => items.value.filter((i) => i.is_active && i.is_sales_item))
+  const purchaseItems = computed(() => items.value.filter((i) => i.is_active && i.is_purchase_item))
   const activeWarehouses = computed(() => warehouses.value.filter((w) => w.is_active))
   const activeSuppliers = computed(() => suppliers.value.filter((s) => s.is_active))
   const activeCategories = computed(() => categories.value.filter((c) => c.is_active))
@@ -595,8 +602,6 @@ export const useStockStore = defineStore('stock', () => {
           supplier:suppliers(id, name, code),
           warehouse:warehouses(id, name, code),
           purchase_order:purchase_orders(id, doc_number),
-          created_by_user:profiles!goods_receipt_notes_created_by_fkey(full_name),
-          approved_by_user:profiles!goods_receipt_notes_approved_by_fkey(full_name),
           grn_lines(
             *,
             item:items(id, item_code, item_name),
@@ -608,6 +613,31 @@ export const useStockStore = defineStore('stock', () => {
         .order('created_at', { ascending: false })
 
       if (fetchError) throw fetchError
+
+      // Manually fetch creator profiles
+      const userIds = [
+        ...new Set(
+          data
+            .map((r) => r.created_by)
+            .concat(data.map((r) => r.approved_by))
+            .filter(Boolean),
+        ),
+      ]
+      if (userIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, full_name')
+          .in('id', userIds)
+
+        if (profiles) {
+          const profileMap = Object.fromEntries(profiles.map((p) => [p.id, p]))
+          data.forEach((r) => {
+            if (r.created_by) r.created_by_user = profileMap[r.created_by]
+            if (r.approved_by) r.approved_by_user = profileMap[r.approved_by]
+          })
+        }
+      }
+
       goodsReceiptNotes.value = data
     } catch (err) {
       console.error('Error fetching GRNs:', err)
@@ -621,49 +651,27 @@ export const useStockStore = defineStore('stock', () => {
     try {
       loading.value = true
 
-      // Generate document number
-      const docResult = await generateDocNumber('GRN')
-      if (!docResult.success) throw new Error(docResult.error)
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      if (!user) throw new Error('User not authenticated')
 
-      // Calculate totals
-      const subtotal = lines.reduce((sum, line) => sum + line.quantity * line.unit_cost, 0)
+      const { data, error: rpcError } = await supabase.rpc('process_goods_receipt_po', {
+        p_grn_header: grnData,
+        p_grn_lines: lines,
+        p_user_id: user.id,
+      })
 
-      // Create GRN header
-      const { data: grn, error: grnError } = await supabase
-        .from('goods_receipt_notes')
-        .insert({
-          ...grnData,
-          doc_number: docResult.docNumber,
-          subtotal,
-          total_amount: subtotal,
-        })
-        .select()
-        .single()
+      if (rpcError) throw rpcError
+      if (!data.success) throw new Error(data.error)
 
-      if (grnError) throw grnError
+      await Promise.all([
+        fetchGoodsReceiptNotes(),
+        fetchItems(), // Refresh costs
+        fetchPurchaseOrders(), // Refresh status
+      ])
 
-      // Create GRN lines
-      const grnLines = lines.map((line, index) => ({
-        grn_id: grn.id,
-        line_num: index + 1,
-        po_line_id: line.po_line_id,
-        item_id: line.item_id,
-        item_description: line.item_description,
-        quantity: line.quantity,
-        uom_id: line.uom_id,
-        unit_cost: line.unit_cost,
-        line_total: line.quantity * line.unit_cost,
-        warehouse_id: line.warehouse_id || grnData.warehouse_id,
-        batch_number: line.batch_number,
-        expiry_date: line.expiry_date,
-      }))
-
-      const { error: linesError } = await supabase.from('grn_lines').insert(grnLines)
-
-      if (linesError) throw linesError
-
-      await fetchGoodsReceiptNotes()
-      return { success: true, data: grn }
+      return { success: true, data: { id: data.grn_id, doc_number: data.doc_number } }
     } catch (err) {
       console.error('Error creating GRN:', err)
       return { success: false, error: err.message }
@@ -715,8 +723,6 @@ export const useStockStore = defineStore('stock', () => {
           *,
           from_warehouse:warehouses!goods_issue_notes_from_warehouse_id_fkey(id, name, code),
           to_warehouse:warehouses!goods_issue_notes_to_warehouse_id_fkey(id, name, code),
-          created_by_user:profiles!goods_issue_notes_created_by_fkey(full_name),
-          approved_by_user:profiles!goods_issue_notes_approved_by_fkey(full_name),
           gin_lines(
             *,
             item:items(id, item_code, item_name),
@@ -727,6 +733,31 @@ export const useStockStore = defineStore('stock', () => {
         .order('created_at', { ascending: false })
 
       if (fetchError) throw fetchError
+
+      // Manually fetch creator profiles
+      const userIds = [
+        ...new Set(
+          data
+            .map((r) => r.created_by)
+            .concat(data.map((r) => r.approved_by))
+            .filter(Boolean),
+        ),
+      ]
+      if (userIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, full_name')
+          .in('id', userIds)
+
+        if (profiles) {
+          const profileMap = Object.fromEntries(profiles.map((p) => [p.id, p]))
+          data.forEach((r) => {
+            if (r.created_by) r.created_by_user = profileMap[r.created_by]
+            if (r.approved_by) r.approved_by_user = profileMap[r.approved_by]
+          })
+        }
+      }
+
       goodsIssueNotes.value = data
     } catch (err) {
       console.error('Error fetching GINs:', err)
@@ -868,10 +899,9 @@ export const useStockStore = defineStore('stock', () => {
         .select(
           `
           *,
-          sales_item:items!recipes_sales_item_id_fkey(id, item_code, item_name),
+          sales_item:items(id, item_code, item_name),
           target_warehouse:warehouses(id, name, code),
           yield_uom:units_of_measure(id, code, name),
-          created_by_user:profiles!recipes_created_by_fkey(full_name),
           recipe_lines(
             *,
             item:items(id, item_code, item_name, is_purchase_item),
@@ -882,6 +912,25 @@ export const useStockStore = defineStore('stock', () => {
         .order('created_at', { ascending: false })
 
       if (fetchError) throw fetchError
+
+      // Manually fetch creator profiles
+      const userIds = [...new Set(data.map((r) => r.created_by).filter(Boolean))]
+      if (userIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, full_name')
+          .in('id', userIds)
+
+        if (profiles) {
+          const profileMap = Object.fromEntries(profiles.map((p) => [p.id, p]))
+          data.forEach((r) => {
+            if (r.created_by) {
+              r.created_by_user = profileMap[r.created_by]
+            }
+          })
+        }
+      }
+
       recipes.value = data
       return { success: true, data }
     } catch (err) {
@@ -1043,8 +1092,6 @@ export const useStockStore = defineStore('stock', () => {
           *,
           from_warehouse:warehouses!stock_transfers_from_warehouse_id_fkey(id, name, code),
           to_warehouse:warehouses!stock_transfers_to_warehouse_id_fkey(id, name, code),
-          created_by_user:profiles!stock_transfers_created_by_fkey(full_name),
-          approved_by_user:profiles!stock_transfers_approved_by_fkey(full_name),
           stock_transfer_lines(
             *,
             item:items(id, item_code, item_name),
@@ -1055,6 +1102,29 @@ export const useStockStore = defineStore('stock', () => {
         .order('created_at', { ascending: false })
 
       if (fetchError) throw fetchError
+
+      // Manually fetch related profiles
+      const userIds = [
+        ...new Set(
+          [...data.map((t) => t.created_by), ...data.map((t) => t.approved_by)].filter(Boolean),
+        ),
+      ]
+
+      if (userIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, full_name')
+          .in('id', userIds)
+
+        if (profiles) {
+          const profileMap = Object.fromEntries(profiles.map((p) => [p.id, p]))
+          data.forEach((t) => {
+            if (t.created_by) t.created_by_user = profileMap[t.created_by]
+            if (t.approved_by) t.approved_by_user = profileMap[t.approved_by]
+          })
+        }
+      }
+
       stockTransfers.value = data
       return { success: true, data }
     } catch (err) {
@@ -1247,6 +1317,127 @@ export const useStockStore = defineStore('stock', () => {
   }
 
   // ============================================
+  // PURCHASE REQUEST ACTIONS
+  // ============================================
+
+  const purchaseRequests = ref([])
+  const alerts = ref([])
+
+  async function fetchPurchaseRequests() {
+    try {
+      loading.value = true
+      const { data, error: fetchError } = await supabase
+        .from('purchase_requests')
+        .select(
+          `
+          *,
+          requester:profiles!purchase_requests_requester_id_fkey(full_name),
+          purchase_request_lines(
+            *,
+            item:items(id, item_code, item_name, default_supplier_id),
+            uom:units_of_measure(id, code, name),
+            preferred_vendor:suppliers(id, name)
+          )
+        `,
+        )
+        .order('created_at', { ascending: false })
+
+      if (fetchError) throw fetchError
+      purchaseRequests.value = data
+    } catch (err) {
+      console.error('Error fetching PRs:', err)
+      error.value = err.message
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function createPurchaseRequest(prData, lines) {
+    try {
+      loading.value = true
+      const docResult = await generateDocNumber('PRQ')
+      if (!docResult.success) throw new Error(docResult.error)
+
+      const { data: pr, error: prError } = await supabase
+        .from('purchase_requests')
+        .insert({ ...prData, doc_number: docResult.docNumber })
+        .select()
+        .single()
+
+      if (prError) throw prError
+
+      const prLines = lines.map((line) => ({
+        request_id: pr.id,
+        item_id: line.item_id,
+        required_quantity: line.required_quantity,
+        open_quantity: line.required_quantity,
+        uom_id: line.uom_id,
+        preferred_vendor_id: line.preferred_vendor_id,
+      }))
+
+      const { error: linesError } = await supabase.from('purchase_request_lines').insert(prLines)
+      if (linesError) throw linesError
+
+      await fetchPurchaseRequests()
+      return { success: true, data: pr }
+    } catch (err) {
+      console.error('Error creating PR:', err)
+      return { success: false, error: err.message }
+    } finally {
+      loading.value = false
+    }
+  }
+
+  // Check for items below MinStock
+  async function checkStockAlerts() {
+    try {
+      // 1. Fetch items with stock info
+      await fetchItems()
+
+      const lowStockItems = items.value.filter((item) => {
+        if (!item.is_inventory_item || !item.min_stock_level) return false
+
+        // Formula: Available = In Stock + Ordered - Committed
+        const inStock =
+          item.warehouse_stock?.reduce((acc, ws) => acc + (ws.quantity_on_hand || 0), 0) || 0
+        const ordered =
+          item.warehouse_stock?.reduce((acc, ws) => acc + (ws.quantity_ordered || 0), 0) || 0
+        const committed =
+          item.warehouse_stock?.reduce((acc, ws) => acc + (ws.quantity_committed || 0), 0) || 0
+
+        const available = inStock + ordered - committed
+
+        return available < item.min_stock_level
+      })
+
+      alerts.value = lowStockItems.map((item) => ({
+        item_id: item.id,
+        item_code: item.item_code,
+        item_name: item.item_name,
+        min_stock: item.min_stock_level,
+        available_stock:
+          (item.warehouse_stock?.reduce((acc, ws) => acc + (ws.quantity_on_hand || 0), 0) || 0) +
+          (item.warehouse_stock?.reduce((acc, ws) => acc + (ws.quantity_ordered || 0), 0) || 0) -
+          (item.warehouse_stock?.reduce((acc, ws) => acc + (ws.quantity_committed || 0), 0) || 0),
+        reorder_qty:
+          item.reorder_quantity ||
+          (item.max_stock_level ? item.max_stock_level - item.min_stock_level : 0),
+        preferred_vendor_id: item.default_supplier_id,
+      }))
+
+      return alerts.value
+    } catch (err) {
+      console.error('Error checking alerts:', err)
+      return []
+    }
+  }
+
+  async function createPOFromPR(prId, poHeader, selectedLines) {
+    // Implementation logic would go here
+    return createPurchaseOrder(poHeader, selectedLines)
+  }
+
+  // ============================================
   // EXPORTS
   // ============================================
 
@@ -1263,11 +1454,16 @@ export const useStockStore = defineStore('stock', () => {
     stockTransactions,
     recipes,
     stockTransfers,
+    purchaseRequests,
+    alerts,
     loading,
     error,
 
     // Getters
     activeItems,
+    inventoryItems,
+    salesItems,
+    purchaseItems,
     activeWarehouses,
     activeSuppliers,
     activeCategories,
@@ -1327,6 +1523,12 @@ export const useStockStore = defineStore('stock', () => {
     createStockTransfer,
     completeStockTransfer,
     cancelStockTransfer,
+
+    // Procurement Actions (New)
+    fetchPurchaseRequests,
+    createPurchaseRequest,
+    checkStockAlerts,
+    createPOFromPR,
 
     // Realtime
     setupRealtimeSubscriptions,

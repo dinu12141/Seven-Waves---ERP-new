@@ -625,9 +625,9 @@ function getItemUom(itemId) {
 }
 
 function getWarehouseColor(code) {
-  if (code === 'MW') return 'primary'
-  if (code === 'K1') return 'deep-orange'
-  if (code === 'K2') return 'purple'
+  if (code === 'WH01') return 'primary'
+  if (code === 'WH02') return 'deep-orange'
+  if (code === 'WH03') return 'purple'
   return 'grey'
 }
 
