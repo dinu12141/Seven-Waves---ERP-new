@@ -124,12 +124,30 @@
 </template>
 
 <script setup>
+import { onMounted, onUnmounted } from 'vue'
 import { useAuthStore } from 'src/stores/authStore'
+import { useStockStore } from 'src/stores/stockStore'
 
 const authStore = useAuthStore()
+const stockStore = useStockStore()
+
+onMounted(() => {
+  stockStore.subscribeToRealtime()
+  // Fetch initial data for KPIs
+  stockStore.fetchItems()
+  stockStore.fetchPurchaseOrders()
+  stockStore.fetchGoodsReceiptNotes()
+  stockStore.checkStockAlerts()
+})
+
+onUnmounted(() => {
+  stockStore.unsubscribeRealtime()
+})
 </script>
 
 <style lang="scss" scoped>
+@use 'sass:color';
+
 .dashboard-page {
   padding: 24px;
 }
@@ -217,19 +235,19 @@ const authStore = useAuthStore()
 }
 
 .sales-card .kpi-icon {
-  background: linear-gradient(135deg, $primary, darken($primary, 10%));
+  background: linear-gradient(135deg, $primary, color.adjust($primary, $lightness: -10%));
 }
 
 .orders-card .kpi-icon {
-  background: linear-gradient(135deg, $secondary, darken($secondary, 10%));
+  background: linear-gradient(135deg, $secondary, color.adjust($secondary, $lightness: -10%));
 }
 
 .tables-card .kpi-icon {
-  background: linear-gradient(135deg, $accent, darken($accent, 10%));
+  background: linear-gradient(135deg, $accent, color.adjust($accent, $lightness: -10%));
 }
 
 .stock-card .kpi-icon {
-  background: linear-gradient(135deg, #c10015, darken(#c10015, 10%));
+  background: linear-gradient(135deg, #c10015, color.adjust(#c10015, $lightness: -10%));
 }
 
 .section-header {

@@ -216,6 +216,44 @@
                   <q-td key="line_total" class="text-right text-bold">
                     {{ formatCurrency(props.row.line_total) }}
                   </q-td>
+                  <q-td key="barcode">
+                    <div class="row items-center q-gutter-xs no-wrap">
+                      <q-btn-toggle
+                        v-model="props.row.barcode_type"
+                        dense
+                        flat
+                        toggle-color="primary"
+                        :options="[
+                          { label: 'New', value: 'new' },
+                          { label: 'Existing', value: 'existing' },
+                        ]"
+                        size="sm"
+                      />
+                      <q-input
+                        v-if="props.row.barcode_type === 'existing'"
+                        v-model="props.row.barcode"
+                        placeholder="Scan barcode"
+                        dense
+                        outlined
+                        style="width: 120px"
+                      >
+                        <template #prepend>
+                          <q-icon name="qr_code_scanner" size="xs" />
+                        </template>
+                      </q-input>
+                      <q-btn
+                        v-if="props.row.barcode_type === 'new'"
+                        flat
+                        dense
+                        size="sm"
+                        icon="print"
+                        color="primary"
+                        @click="printBarcode(props.row)"
+                      >
+                        <q-tooltip>Print New Barcode</q-tooltip>
+                      </q-btn>
+                    </div>
+                  </q-td>
                   <q-td key="actions" v-if="!selectedPOId">
                     <q-btn
                       flat
@@ -318,9 +356,21 @@ const grnLines = ref([])
 const selectedPOId = ref(null)
 const selectedGRN = ref(null)
 
-const approvedPOs = computed(() =>
-  stockStore.purchaseOrders.filter((po) => po.status === 'approved'),
-)
+const approvedPOs = computed(() => {
+  return stockStore.purchaseOrders.filter((po) => {
+    // Only show approved POs
+    if (po.status !== 'approved') return false
+
+    // Check if ANY line still has quantity to receive
+    const hasItemsToReceive = (po.po_lines || []).some((line) => {
+      const ordered = line.quantity || 0
+      const received = line.received_quantity || 0
+      return received < ordered
+    })
+
+    return hasItemsToReceive
+  })
+})
 
 const columns = [
   { name: 'doc_number', label: 'Doc #', field: 'doc_number', sortable: true, align: 'left' },
@@ -346,6 +396,7 @@ const lineColumns = [
   { name: 'quantity', label: 'Receive Qty', align: 'center' },
   { name: 'unit_cost', label: 'Unit Cost', align: 'right' },
   { name: 'line_total', label: 'Total', align: 'right' },
+  { name: 'barcode', label: 'Barcode', align: 'center' },
 ]
 
 const viewLineColumns = [
@@ -419,12 +470,15 @@ function onPOSelect(poId) {
       po_line_id: line.id,
       item_id: line.item_id,
       item_description: line.item?.item_name,
+      item_code: line.item?.item_code,
       ordered_qty: line.quantity,
       already_received: line.received_quantity || 0,
       quantity: line.quantity - (line.received_quantity || 0),
       uom_id: line.uom_id,
       unit_cost: line.unit_price,
       line_total: (line.quantity - (line.received_quantity || 0)) * line.unit_price,
+      barcode_type: line.item?.barcode ? 'existing' : 'new',
+      barcode: line.item?.barcode || '',
     }))
   }
 }
@@ -454,7 +508,41 @@ function addLine() {
     uom_id: null,
     unit_cost: 0,
     line_total: 0,
+    barcode_type: 'new',
+    barcode: '',
   })
+}
+
+// Generate barcode based on item and timestamp
+function generateBarcode(item) {
+  const prefix = 'SW'
+  const timestamp = Date.now().toString(36).toUpperCase()
+  const itemCode = item.item_code?.replace(/[^A-Z0-9]/gi, '').slice(0, 4) || 'ITEM'
+  return `${prefix}${itemCode}${timestamp}`
+}
+
+// Print barcode (opens print dialog)
+function printBarcode(line) {
+  const barcode = line.barcode || generateBarcode(line)
+  line.barcode = barcode
+
+  // Create a simple print window for the barcode
+  const printWindow = window.open('', '_blank', 'width=400,height=200')
+  if (printWindow) {
+    const html = [
+      '<html><head><title>Print Barcode</title>',
+      '<style>body { font-family: "Consolas", monospace; text-align: center; padding: 20px; }',
+      '.barcode { font-size: 24px; letter-spacing: 4px; margin: 20px 0; }',
+      '.item-name { font-size: 12px; color: #666; }</style></head>',
+      '<body><div class="item-name">' + (line.item_description || 'Item') + '</div>',
+      '<div class="barcode">' + barcode + '</div>',
+      '<scr' + 'ipt>window.print(); setTimeout(function(){ window.close(); }, 500);</scr' + 'ipt>',
+      '</body></html>',
+    ].join('')
+    printWindow.document.write(html)
+  }
+
+  $q.notify({ type: 'info', message: 'Barcode: ' + barcode, position: 'top' })
 }
 
 function calcLineTotal(line) {

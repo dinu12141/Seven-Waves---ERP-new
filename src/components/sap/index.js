@@ -1,8 +1,11 @@
 // SAP-style components barrel export
-export { default as SAPTable } from './SAPTable.vue'
-export { default as SAPInput } from './SAPInput.vue'
-export { default as SAPSelect } from './SAPSelect.vue'
-export { default as SAPToolbar } from './SAPToolbar.vue'
-export { default as SAPCard } from './SAPCard.vue'
-export { default as SAPDialog } from './SAPDialog.vue'
-export { default as GoldenArrow } from './GoldenArrow.vue'
+import SAPTable from './SAPTable.vue'
+import SAPCard from './SAPCard.vue'
+import SAPToolbar from './SAPToolbar.vue'
+import SAPDialog from './SAPDialog.vue'
+import SAPInput from './SAPInput.vue'
+import SAPSelect from './SAPSelect.vue'
+import GoldenArrow from './GoldenArrow.vue'
+import ItemSelector from './ItemSelector.vue'
+
+export { SAPTable, SAPCard, SAPToolbar, SAPDialog, SAPInput, SAPSelect, GoldenArrow, ItemSelector }
