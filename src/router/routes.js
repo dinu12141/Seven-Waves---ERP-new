@@ -23,6 +23,13 @@ const routes = [
     ],
   },
 
+  // Customer Menu - Public route for table devices
+  {
+    path: '/menu',
+    component: () => import('pages/CustomerMenuPage.vue'),
+    meta: { public: true },
+  },
+
   // Admin/Dashboard routes
   {
     path: '/',

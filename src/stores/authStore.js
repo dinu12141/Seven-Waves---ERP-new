@@ -96,6 +96,7 @@ export const useAuthStore = defineStore('auth', () => {
           console.log('Profile not found, creating default profile...')
           const newProfile = {
             id: user.value.id,
+            user_id: user.value.id,
             full_name:
               user.value.user_metadata?.full_name || user.value.email?.split('@')[0] || 'User',
             role: 'Z_SALES_STAFF', // Default to sales staff
@@ -191,8 +192,12 @@ export const useAuthStore = defineStore('auth', () => {
       return { success: true, redirectTo: getDashboardRedirect() }
     } catch (err) {
       console.error('Login error:', err)
-      error.value = err.message
-      return { success: false, error: err.message }
+      const detailedError =
+        err.message +
+        (err.details ? `\nDetails: ${err.details}` : '') +
+        (err.hint ? `\nHint: ${err.hint}` : '')
+      error.value = detailedError
+      return { success: false, error: detailedError }
     } finally {
       loading.value = false
     }

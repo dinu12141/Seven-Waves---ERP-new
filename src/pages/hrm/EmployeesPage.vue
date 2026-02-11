@@ -117,6 +117,7 @@
           <q-tab name="employment" label="Employment" icon="work" />
           <q-tab name="salary" label="Salary" icon="payments" />
           <q-tab name="statutory" label="Statutory" icon="gavel" />
+          <q-tab name="system" label="System Access" icon="admin_panel_settings" />
         </q-tabs>
 
         <q-separator />
@@ -259,6 +260,56 @@
                 <SAPInput
                   v-model="employeeForm.emergency_contact_phone"
                   label="Emergency Contact Phone"
+                />
+              </div>
+            </div>
+          </q-tab-panel>
+          <!-- System Access Tab -->
+          <q-tab-panel name="system">
+            <div class="row q-col-gutter-md">
+              <div class="col-12">
+                <q-banner class="bg-blue-1 text-primary rounded-borders q-mb-md">
+                  <template v-slot:avatar>
+                    <q-icon name="info" color="primary" />
+                  </template>
+                  System login is automatically created based on Job Role.
+                </q-banner>
+              </div>
+              <div class="col-12 col-md-6">
+                <SAPInput
+                  v-model="employeeForm.company_email"
+                  label="System Username (Email)"
+                  readonly
+                  hint="Use this email to log in"
+                />
+              </div>
+              <div class="col-12 col-md-6">
+                <q-input
+                  :model-value="'Employee123!'"
+                  label="Default Password"
+                  outlined
+                  dense
+                  readonly
+                  type="text"
+                  hint="Default password for new users"
+                />
+              </div>
+              <div class="col-12 col-md-6">
+                <q-input
+                  :model-value="employeeForm.designation?.related_user_role || 'Sales Staff'"
+                  label="Assigned System Role"
+                  outlined
+                  dense
+                  readonly
+                />
+              </div>
+              <div class="col-12 col-md-6">
+                <q-chip
+                  :model-value="true"
+                  icon="check_circle"
+                  color="green"
+                  text-color="white"
+                  label="Login Active"
                 />
               </div>
             </div>

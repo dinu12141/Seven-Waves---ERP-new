@@ -18,6 +18,8 @@ export const useEmployeeStore = defineStore('employee', () => {
   const salaryComponents = ref([])
   const commissionPackages = ref([])
   const accountHeads = ref([]) // For bank selection if needed
+  const departments = ref([])
+  const designations = ref([])
 
   // UI State
   const loading = ref(false)
@@ -113,14 +115,20 @@ export const useEmployeeStore = defineStore('employee', () => {
     try {
       loading.value = true
 
-      const [, packagesRes] = await Promise.all([
+      const results = await Promise.all([
         fetchHierarchy(),
         supabase.from('commission_packages').select('*').eq('is_active', true),
+        supabase.from('departments').select('*').order('name'),
+        supabase.from('designations').select('*').order('name'),
       ])
+
+      const packagesRes = results[1]
 
       if (packagesRes.error) throw packagesRes.error
 
       commissionPackages.value = packagesRes.data
+      departments.value = results[2].data
+      designations.value = results[3].data
 
       return { success: true }
     } catch (err) {
@@ -256,6 +264,8 @@ export const useEmployeeStore = defineStore('employee', () => {
     activeCommissionPackages,
     salaryComponents,
     accountHeads,
+    departments,
+    designations,
     flattenedHierarchy,
   }
 })

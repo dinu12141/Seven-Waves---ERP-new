@@ -132,6 +132,47 @@
                   dense
                 />
               </div>
+
+              <!-- Department & Designation -->
+              <div class="col-12 col-md-4">
+                <q-select
+                  v-model="form.basic.departmentId"
+                  :options="store.departments"
+                  option-label="name"
+                  option-value="id"
+                  label="Department"
+                  outlined
+                  dense
+                  emit-value
+                  map-options
+                />
+              </div>
+              <div class="col-12 col-md-4">
+                <q-select
+                  v-model="form.basic.designationId"
+                  :options="filteredDesignations"
+                  option-label="name"
+                  option-value="id"
+                  label="Designation (Job Role)"
+                  outlined
+                  dense
+                  emit-value
+                  map-options
+                  @update:model-value="onDesignationSelect"
+                />
+              </div>
+
+              <!-- System Access Hint -->
+              <div class="col-12" v-if="selectedDesignationRole">
+                <q-banner class="bg-blue-1 text-primary rounded-borders q-my-sm" dense>
+                  <template v-slot:avatar>
+                    <q-icon name="admin_panel_settings" color="primary" />
+                  </template>
+                  <strong>System Access:</strong> User will be created with Role
+                  <q-badge color="primary">{{ selectedDesignationRole }}</q-badge>
+                  and default credentials.
+                </q-banner>
+              </div>
               <div class="col-12 col-md-4">
                 <q-input
                   v-model="form.status.joiningDate"
@@ -479,6 +520,8 @@ const form = reactive({
     mobile: '',
     address: '',
     education: [],
+    departmentId: null,
+    designationId: null,
   },
   status: {
     type: 'Permanent',
@@ -521,6 +564,17 @@ const regionOptions = ref([])
 const districtOptions = ref([])
 const branchOptions = ref([])
 const teamOptions = ref([])
+
+const filteredDesignations = computed(() => {
+  if (!form.basic.departmentId) return store.designations
+  return store.designations.filter((d) => d.department_id === form.basic.departmentId)
+})
+
+const selectedDesignationRole = ref('')
+const onDesignationSelect = (id) => {
+  const desg = store.designations.find((d) => d.id === id)
+  if (desg) selectedDesignationRole.value = desg.related_user_role || 'Default Staff'
+}
 
 // Lifecycle
 onMounted(async () => {

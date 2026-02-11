@@ -19,6 +19,21 @@
 
         <q-card-section>
           <q-form @submit.prevent="handleLogin" class="login-form">
+            <!-- Job Role Selector (User Request) -->
+            <q-select
+              v-model="selectedRole"
+              :options="roleOptions"
+              label="Select Job Role"
+              outlined
+              dense
+              class="q-mb-md"
+              bg-color="white"
+            >
+              <template v-slot:prepend>
+                <q-icon name="badge" color="primary" />
+              </template>
+            </q-select>
+
             <!-- Email Input -->
             <q-input
               v-model="email"
@@ -60,8 +75,9 @@
             <!-- Error Message -->
             <q-banner
               v-if="authStore.error"
-              class="error-banner bg-negative text-white q-mb-md"
+              class="bg-negative text-white q-mb-md"
               rounded
+              style="white-space: pre-wrap"
             >
               <template v-slot:avatar>
                 <q-icon name="error" color="white" />
@@ -100,29 +116,18 @@ const authStore = useAuthStore()
 const email = ref('')
 const password = ref('')
 const showPassword = ref(false)
+const selectedRole = ref(null)
+
+const roleOptions = ['Admin', 'Store Manager', 'Head Chef', 'Waiter', 'Cashier', 'HR Manager']
 
 async function handleLogin() {
   const result = await authStore.login(email.value, password.value)
 
   if (result.success) {
-    // Redirect based on role
-    const role = authStore.userRole
-    switch (role) {
-      case 'admin':
-      case 'manager':
-        router.push('/dashboard')
-        break
-      case 'cashier':
-        router.push('/billing')
-        break
-      case 'kitchen':
-        router.push('/kitchen')
-        break
-      case 'waiter':
-        router.push('/orders')
-        break
-      default:
-        router.push('/dashboard')
+    if (result.redirectTo) {
+      router.push(result.redirectTo)
+    } else {
+      router.push('/dashboard')
     }
   }
 }
