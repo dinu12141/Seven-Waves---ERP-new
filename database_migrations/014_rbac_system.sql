@@ -4,6 +4,38 @@
 -- =================================================================
 
 -- =====================================================
+-- 0. SCHEMA FIX: Add missing columns to existing tables
+-- =====================================================
+-- The permissions table may already exist with 'module' used as
+-- the resource identifier. Add the 'resource' column if missing.
+
+DO $$
+BEGIN
+    -- Add 'resource' column to permissions if it doesn't exist
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'permissions')
+       AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'permissions' AND column_name = 'resource')
+    THEN
+        ALTER TABLE permissions ADD COLUMN resource VARCHAR(100);
+        -- Copy module data into resource for existing rows
+        UPDATE permissions SET resource = module WHERE resource IS NULL;
+        -- Make resource NOT NULL now that it has data
+        ALTER TABLE permissions ALTER COLUMN resource SET NOT NULL;
+        -- Drop old unique constraint and add the correct one
+        ALTER TABLE permissions DROP CONSTRAINT IF EXISTS permissions_module_action_key;
+        ALTER TABLE permissions ADD CONSTRAINT permissions_resource_action_key UNIQUE (resource, action);
+        RAISE NOTICE '✅ Added "resource" column to permissions table';
+    END IF;
+
+    -- Add 'is_active' column to user_roles if it doesn't exist
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'user_roles')
+       AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'user_roles' AND column_name = 'is_active')
+    THEN
+        ALTER TABLE user_roles ADD COLUMN is_active BOOLEAN DEFAULT true;
+        RAISE NOTICE '✅ Added "is_active" column to user_roles table';
+    END IF;
+END $$;
+
+-- =====================================================
 -- 1. ROLES TABLE (SAP Authorization Objects)
 -- =====================================================
 
@@ -353,6 +385,11 @@ END $$;
 -- 10. RPC FUNCTIONS
 -- =====================================================
 
+-- Drop functions first to avoid return type conflicts
+DROP FUNCTION IF EXISTS get_user_permissions(uuid);
+DROP FUNCTION IF EXISTS get_user_warehouses(uuid);
+DROP FUNCTION IF EXISTS get_user_role(uuid);
+
 -- Get user permissions
 CREATE OR REPLACE FUNCTION get_user_permissions(p_user_id UUID)
 RETURNS TABLE (
@@ -371,7 +408,7 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Check if user has permission
-CREATE OR REPLACE FUNCTION has_permission(p_user_id UUID, p_resource VARCHAR, p_action VARCHAR)
+CREATE OR REPLACE FUNCTION has_permission(p_user_id UUID, p_module VARCHAR, p_action VARCHAR)
 RETURNS BOOLEAN AS $$
 DECLARE
     has_perm BOOLEAN;
@@ -383,7 +420,7 @@ BEGIN
         INNER JOIN user_roles ur ON ur.role_id = rp.role_id
         WHERE ur.user_id = p_user_id 
         AND ur.is_active = true
-        AND p.resource = p_resource
+        AND (p.resource = p_module OR p.module = p_module)
         AND p.action = p_action
     ) INTO has_perm;
     

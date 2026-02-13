@@ -1,0 +1,4 @@
+PLEASE RUN THE FOLLOWING FILE IN SUPABASE SQL EDITOR:
+database_migrations/051_fix_authenticator_path.sql
+
+This fixes the "Database error querying schema" (500) during login by ensuring the API gateway knows where to find the 'pgcrypto' library.

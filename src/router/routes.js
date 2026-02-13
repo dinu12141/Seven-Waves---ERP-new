@@ -55,18 +55,49 @@ const routes = [
             'Z_INV_CLERK',
             'Z_PROD_STAFF',
             'Z_SALES_STAFF',
+            'Z_WAITER',
+            'Z_CASHIER',
+            'Z_KITCHEN',
+            'Z_HR_MANAGER',
+            'Z_HR_OFFICER',
+            'Z_FINANCE',
           ],
         },
       },
 
       // HRM Routes
       {
+        path: 'hrm/dashboard',
+        component: () => import('pages/hrm/HRMDashboardPage.vue'),
+        meta: {
+          permission: 'employees.read',
+          module: 'hr',
+          roles: [
+            'admin',
+            'manager',
+            'Z_ALL',
+            'Z_HR_MANAGER',
+            'Z_HR_OFFICER',
+            'hr_manager',
+            'hr_officer',
+          ],
+        },
+      },
+      {
         path: 'hrm/employees',
         component: () => import('pages/hrm/EmployeesPage.vue'),
         meta: {
           permission: 'employees.read',
           module: 'hr',
-          roles: ['admin', 'manager', 'Z_ALL', 'Z_HR_MANAGER', 'Z_HR_OFFICER'],
+          roles: [
+            'admin',
+            'manager',
+            'Z_ALL',
+            'Z_HR_MANAGER',
+            'Z_HR_OFFICER',
+            'hr_manager',
+            'hr_officer',
+          ],
         },
       },
       {
@@ -241,7 +272,15 @@ const routes = [
         meta: {
           permission: 'billing.process',
           module: 'sales',
-          roles: ['admin', 'manager', 'cashier', 'Z_ALL', 'Z_STOCK_MGR', 'Z_SALES_STAFF'],
+          roles: [
+            'admin',
+            'manager',
+            'cashier',
+            'Z_ALL',
+            'Z_STOCK_MGR',
+            'Z_SALES_STAFF',
+            'Z_CASHIER',
+          ],
         },
       },
 
@@ -252,7 +291,17 @@ const routes = [
         meta: {
           permission: 'tables.view',
           module: 'operations',
-          roles: ['admin', 'manager', 'cashier', 'waiter', 'Z_ALL', 'Z_STOCK_MGR', 'Z_SALES_STAFF'],
+          roles: [
+            'admin',
+            'manager',
+            'cashier',
+            'waiter',
+            'Z_ALL',
+            'Z_STOCK_MGR',
+            'Z_SALES_STAFF',
+            'Z_WAITER',
+            'Z_CASHIER',
+          ],
         },
       },
       {
@@ -261,7 +310,34 @@ const routes = [
         meta: {
           permission: 'orders.read',
           module: 'sales',
-          roles: ['admin', 'manager', 'cashier', 'waiter', 'Z_ALL', 'Z_STOCK_MGR', 'Z_SALES_STAFF'],
+          roles: [
+            'admin',
+            'manager',
+            'cashier',
+            'waiter',
+            'Z_ALL',
+            'Z_STOCK_MGR',
+            'Z_SALES_STAFF',
+            'Z_WAITER',
+            'Z_CASHIER',
+          ],
+        },
+      },
+      {
+        path: 'operations/waiter',
+        component: () => import('pages/operations/WaiterPage.vue'),
+        meta: {
+          permission: 'orders.read',
+          module: 'operations',
+          roles: [
+            'admin',
+            'manager',
+            'waiter',
+            'Z_ALL',
+            'Z_STOCK_MGR',
+            'Z_SALES_STAFF',
+            'Z_WAITER',
+          ],
         },
       },
       {
@@ -270,7 +346,15 @@ const routes = [
         meta: {
           permission: 'kitchen.view',
           module: 'operations',
-          roles: ['admin', 'manager', 'kitchen', 'Z_ALL', 'Z_STOCK_MGR', 'Z_PROD_STAFF'],
+          roles: [
+            'admin',
+            'manager',
+            'kitchen',
+            'Z_ALL',
+            'Z_STOCK_MGR',
+            'Z_PROD_STAFF',
+            'Z_KITCHEN',
+          ],
         },
       },
       {
@@ -290,7 +374,7 @@ const routes = [
         meta: {
           permission: 'accounts.view',
           module: 'finance',
-          roles: ['admin', 'manager', 'Z_ALL', 'Z_FINANCE'],
+          roles: ['admin', 'manager', 'Z_ALL', 'Z_FINANCE', 'finance_manager'],
         },
       },
       {
@@ -299,7 +383,7 @@ const routes = [
         meta: {
           permission: 'transactions.view',
           module: 'finance',
-          roles: ['admin', 'manager', 'Z_ALL', 'Z_FINANCE'],
+          roles: ['admin', 'manager', 'Z_ALL', 'Z_FINANCE', 'finance_manager'],
         },
       },
       {
@@ -308,7 +392,7 @@ const routes = [
         meta: {
           permission: 'daily_cash.view',
           module: 'finance',
-          roles: ['admin', 'manager', 'Z_ALL', 'Z_FINANCE'],
+          roles: ['admin', 'manager', 'Z_ALL', 'Z_FINANCE', 'finance_manager'],
         },
       },
 
@@ -428,6 +512,13 @@ const routes = [
         },
       },
     ],
+  },
+
+  // 403 Forbidden
+  {
+    path: '/403',
+    component: () => import('pages/ForbiddenPage.vue'),
+    meta: { public: true },
   },
 
   // Always leave this as last one

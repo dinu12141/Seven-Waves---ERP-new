@@ -20,19 +20,6 @@
         <q-card-section>
           <q-form @submit.prevent="handleLogin" class="login-form">
             <!-- Job Role Selector (User Request) -->
-            <q-select
-              v-model="selectedRole"
-              :options="roleOptions"
-              label="Select Job Role"
-              outlined
-              dense
-              class="q-mb-md"
-              bg-color="white"
-            >
-              <template v-slot:prepend>
-                <q-icon name="badge" color="primary" />
-              </template>
-            </q-select>
 
             <!-- Email Input -->
             <q-input
@@ -116,9 +103,6 @@ const authStore = useAuthStore()
 const email = ref('')
 const password = ref('')
 const showPassword = ref(false)
-const selectedRole = ref(null)
-
-const roleOptions = ['Admin', 'Store Manager', 'Head Chef', 'Waiter', 'Cashier', 'HR Manager']
 
 async function handleLogin() {
   const result = await authStore.login(email.value, password.value)

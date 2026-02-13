@@ -264,6 +264,7 @@
               </div>
             </div>
           </q-tab-panel>
+
           <!-- System Access Tab -->
           <q-tab-panel name="system">
             <div class="row q-col-gutter-md">
@@ -272,56 +273,142 @@
                   <template v-slot:avatar>
                     <q-icon name="info" color="primary" />
                   </template>
-                  System login is automatically created based on Job Role.
+                  Manage system login credentials for this employee.
+                  <span v-if="!employeeForm.user_id" class="text-weight-bold"
+                    >No system user linked.</span
+                  >
                 </q-banner>
               </div>
-              <div class="col-12 col-md-6">
-                <SAPInput
-                  v-model="employeeForm.company_email"
-                  label="System Username (Email)"
-                  readonly
-                  hint="Use this email to log in"
-                />
+
+              <!-- Manual User Access Management -->
+              <div v-if="employeeForm.user_id" class="col-12 row q-col-gutter-md">
+                <div class="col-12 col-md-6">
+                  <q-input
+                    v-model="systemAccessForm.email"
+                    label="System Email"
+                    outlined
+                    dense
+                    hint="Changing this will change the login email"
+                  />
+                </div>
+                <div class="col-12 col-md-6">
+                  <q-select
+                    v-model="systemAccessForm.role"
+                    :options="authStore.roleOptions"
+                    label="System Role"
+                    outlined
+                    dense
+                    emit-value
+                    map-options
+                  />
+                </div>
+                <div class="col-12 col-md-6">
+                  <q-input
+                    v-model="systemAccessForm.password"
+                    label="New Password"
+                    outlined
+                    dense
+                    placeholder="Leave empty to keep current"
+                    hint="Enter a value only if you want to reset it"
+                  >
+                    <template v-slot:append>
+                      <q-icon
+                        name="refresh"
+                        class="cursor-pointer"
+                        @click="systemAccessForm.password = authStore.generateTempPassword()"
+                      >
+                        <q-tooltip>Generate Random</q-tooltip>
+                      </q-icon>
+                    </template>
+                  </q-input>
+                </div>
+                <!-- Login Active Badge -->
+                <div class="col-12 col-md-6 flex items-center">
+                  <q-chip
+                    icon="check_circle"
+                    color="green"
+                    text-color="white"
+                    label="Login Active"
+                    v-if="systemAccessForm.email"
+                  />
+                </div>
+
+                <!-- Granular Permissions (For Existing Users) -->
+                <div class="col-12">
+                  <q-separator class="q-my-sm" />
+                  <div class="text-subtitle2 q-mb-xs">User Permissions</div>
+                  <div class="q-gutter-sm row">
+                    <div v-for="mod in permissionModules" :key="mod" class="col-12 col-md-3">
+                      <q-card flat bordered class="q-pa-sm bg-grey-1">
+                        <div class="text-weight-bold text-caption text-uppercase q-mb-xs">
+                          {{ mod }}
+                        </div>
+                        <div v-for="perm in getPermissionsByModule(mod)" :key="perm.id">
+                          <q-checkbox
+                            v-model="systemAccessForm.permissions"
+                            :val="perm.id"
+                            :label="perm.description || perm.action"
+                            dense
+                            size="sm"
+                          />
+                        </div>
+                      </q-card>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="col-12 q-mt-md">
+                  <q-btn
+                    color="primary"
+                    label="Update Credentials & Permissions"
+                    icon="save"
+                    @click="updateSystemAccess"
+                    :loading="updatingAccess"
+                  />
+                </div>
               </div>
-              <div class="col-12 col-md-6">
-                <q-input
-                  :model-value="'Employee123!'"
-                  label="Default Password"
-                  outlined
-                  dense
-                  readonly
-                  type="text"
-                  hint="Default password for new users"
-                />
-              </div>
-              <div class="col-12 col-md-6">
-                <q-input
-                  :model-value="employeeForm.designation?.related_user_role || 'Sales Staff'"
-                  label="Assigned System Role"
-                  outlined
-                  dense
-                  readonly
-                />
-              </div>
-              <div class="col-12 col-md-6">
-                <q-chip
-                  :model-value="true"
-                  icon="check_circle"
-                  color="green"
-                  text-color="white"
-                  label="Login Active"
-                />
+
+              <div v-else class="col-12">
+                <q-banner class="bg-warning text-white">
+                  User account not created. Please create one via User Management or re-register.
+                </q-banner>
               </div>
             </div>
           </q-tab-panel>
         </q-tab-panels>
       </q-form>
+
+      <!-- Custom Footer for Dialog to include Delete -->
+      <template v-slot:footer>
+        <div class="row justify-between q-pa-md">
+          <q-btn
+            v-if="isEditing"
+            color="negative"
+            flat
+            label="Delete Employee"
+            icon="delete"
+            @click="confirmDelete"
+          />
+          <div v-else></div>
+          <!-- Spacer -->
+
+          <div class="q-gutter-sm">
+            <q-btn flat label="Cancel" v-close-popup />
+            <q-btn
+              color="primary"
+              :label="isEditing ? 'Update' : 'Add'"
+              @click="submitForm"
+              :loading="saving"
+            />
+          </div>
+        </div>
+      </template>
     </SAPDialog>
   </q-page>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import { supabase } from 'src/boot/supabase'
@@ -343,10 +430,12 @@ const authStore = useAuthStore()
 // State
 const loading = ref(false)
 const saving = ref(false)
+const updatingAccess = ref(false)
 const employees = ref([])
 const departments = ref([])
 const designations = ref([])
 const salaryStructures = ref([])
+const availablePermissions = ref([])
 const showEmployeeDialog = ref(false)
 const showFilterDialog = ref(false)
 const isEditing = ref(false)
@@ -354,12 +443,28 @@ const activeTab = ref('personal')
 const employeeFormRef = ref(null)
 
 const employeeForm = ref(getEmptyForm())
+const systemAccessForm = reactive({
+  email: '',
+  role: '',
+  password: '',
+  permissions: [], // Array of Permission IDs
+})
 
 // Computed
 const filteredEmployees = computed(() => employees.value)
-const canViewSalary = computed(() =>
-  ['admin', 'hr_manager', 'director'].includes(authStore.userRole),
+const canViewSalary = computed(
+  () =>
+    ['admin', 'Z_ALL', 'hr_manager', 'director'].includes(authStore.userRole) || authStore.isAdmin,
 )
+
+// Permission Helpers
+const permissionModules = computed(() => {
+  return [...new Set(availablePermissions.value.map((p) => p.module))]
+})
+
+function getPermissionsByModule(mod) {
+  return availablePermissions.value.filter((p) => p.module === mod)
+}
 
 // Columns
 const columns = [
@@ -370,7 +475,13 @@ const columns = [
     sortable: true,
     align: 'left',
   },
-  { name: 'full_name', label: 'Full Name', field: 'full_name', sortable: true, align: 'left' },
+  {
+    name: 'full_name',
+    label: 'Full Name',
+    field: (row) => `${row.first_name || ''} ${row.last_name || ''}`,
+    sortable: true,
+    align: 'left',
+  },
   {
     name: 'department',
     label: 'Department',
@@ -428,6 +539,7 @@ function getEmptyForm() {
     status: 'Active',
     salary_structure_id: null,
     base_amount: 0,
+    user_id: null,
   }
 }
 
@@ -458,7 +570,7 @@ async function loadData() {
     // Load Employees
     const { data: empData, error: empError } = await supabase
       .from('employees')
-      .select('*, department:departments!department_id(*), designation:designations(*)')
+      .select('*, department:departments(*), designation:designations(*)')
       .order('employee_code')
 
     if (empError) {
@@ -466,9 +578,6 @@ async function loadData() {
       throw empError
     }
     employees.value = empData || []
-
-    // Load Salary Assignments for all employees (optimization: could be done per employee on view, but for list size it's ok to fetch active ones)
-    // Actually, to keep it simple and secure, let's fetch it on demand in viewEmployee
 
     // Load Departments
     const { data: deptData, error: deptError } = await supabase
@@ -489,6 +598,15 @@ async function loadData() {
 
     if (desigError) console.error('Designation query error:', desigError)
     designations.value = desigData || []
+
+    // Load Permissions for UI
+    const { data: permData, error: permError } = await supabase
+      .from('permissions')
+      .select('*')
+      .order('module')
+
+    if (permError) console.error('Permissions query error', permError)
+    availablePermissions.value = permData || []
 
     // Load Salary Structures (if permitted)
     if (canViewSalary.value) {
@@ -517,6 +635,12 @@ async function viewEmployee(row) {
   employeeForm.value = { ...getEmptyForm(), ...row }
   isEditing.value = true
 
+  // Reset System Access Form
+  systemAccessForm.email = ''
+  systemAccessForm.role = ''
+  systemAccessForm.password = ''
+  systemAccessForm.permissions = []
+
   // Load Salary Assignment
   if (canViewSalary.value) {
     const { data, error } = await supabase
@@ -536,10 +660,104 @@ async function viewEmployee(row) {
     }
   }
 
+  // Load System User Profile (if user_id exists)
+  if (row.user_id) {
+    const { data: profileData, error: profileError } = await supabase
+      .from('profiles')
+      .select('email, role')
+      .eq('id', row.user_id)
+      .single()
+
+    if (profileError) {
+      console.warn('Error fetching system profile:', profileError)
+    }
+
+    if (profileData) {
+      systemAccessForm.email = profileData.email
+      systemAccessForm.role = profileData.role
+    }
+
+    // Fetch user permissions
+    const { data: userPerms } = await supabase
+      .from('user_permissions')
+      .select('permission_id')
+      .eq('user_id', row.user_id)
+
+    if (userPerms) {
+      systemAccessForm.permissions = userPerms.map((p) => p.permission_id)
+    }
+  }
+
   showEmployeeDialog.value = true
 }
 
+// Function to delete employee
+async function confirmDelete() {
+  $q.dialog({
+    title: 'Confirm Delete',
+    message:
+      'Are you sure you want to delete this employee? This will also delete their system user account. This action cannot be undone.',
+    cancel: true,
+    persistent: true,
+  }).onOk(async () => {
+    try {
+      saving.value = true
+      const result = await authStore.adminDeleteEmployee(employeeForm.value.id)
+      if (result.success) {
+        $q.notify({ type: 'positive', message: 'Employee deleted successfully' })
+        showEmployeeDialog.value = false
+        await loadData()
+      } else {
+        throw new Error(result.error)
+      }
+    } catch (err) {
+      $q.notify({ type: 'negative', message: 'Failed to delete: ' + err.message })
+    } finally {
+      saving.value = false
+    }
+  })
+}
+
+// Function to update system credentials
+async function updateSystemAccess() {
+  if (!employeeForm.value.user_id) return
+
+  try {
+    updatingAccess.value = true
+    // admin_update_user(p_user_id, p_email, p_password, p_full_name, p_role, p_permissions)
+    const passwordToSend = systemAccessForm.password ? systemAccessForm.password : null
+
+    const { data, error } = await supabase.rpc('admin_update_user', {
+      p_user_id: employeeForm.value.user_id,
+      p_email: systemAccessForm.email,
+      p_password: passwordToSend,
+      p_full_name: `${employeeForm.value.first_name} ${employeeForm.value.last_name}`,
+      p_role: systemAccessForm.role,
+      p_permissions: systemAccessForm.permissions,
+    })
+
+    if (error) throw error
+
+    if (data && data.success === false) throw new Error(data.error)
+
+    $q.notify({ type: 'positive', message: 'Credentials & Permissions updated successfully' })
+    systemAccessForm.password = '' // Clear password field
+    // Reload data to reflect email changes if any
+    await loadData()
+  } catch (err) {
+    $q.notify({ type: 'negative', message: 'Failed to update credentials: ' + err.message })
+  } finally {
+    updatingAccess.value = false
+  }
+}
+
 async function submitForm() {
+  // If not editing, use registration page
+  if (!isEditing.value) {
+    openCreateDialog()
+    return
+  }
+
   if (!employeeForm.value.first_name || !employeeForm.value.last_name) {
     $q.notify({ type: 'warning', message: 'Please fill required fields' })
     return
@@ -554,19 +772,13 @@ async function submitForm() {
     delete payload.full_name
     delete payload.salary_structure_id
     delete payload.base_amount
+    delete payload.designation // Fix: remove entire object
+    delete payload.department // Fix: remove entire object
 
     let employeeId = payload.id
-    let result
 
-    if (isEditing.value) {
-      result = await supabase.from('employees').update(payload).eq('id', payload.id)
-    } else {
-      delete payload.id
-      payload.created_by = authStore.user?.id // Set created_by
-      result = await supabase.from('employees').insert(payload).select().single()
-      if (result.data) employeeId = result.data.id
-    }
-
+    // Update core employee data
+    const result = await supabase.from('employees').update(payload).eq('id', payload.id)
     if (result.error) throw result.error
 
     // Handle Salary Assignment
@@ -602,7 +814,7 @@ async function submitForm() {
 
     $q.notify({
       type: 'positive',
-      message: isEditing.value ? 'Employee updated' : 'Employee created',
+      message: 'Employee updated',
     })
     showEmployeeDialog.value = false
     await loadData()
@@ -613,7 +825,6 @@ async function submitForm() {
     saving.value = false
   }
 }
-
 function exportData() {
   $q.notify({ type: 'info', message: 'Export functionality coming soon' })
 }

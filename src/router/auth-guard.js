@@ -36,7 +36,7 @@ export function authGuard(to, from, next) {
     const [resource, action] = to.meta.permission.split('.')
     if (!authStore.hasPermission(resource, action)) {
       console.warn(`Access denied: Missing permission ${to.meta.permission}`)
-      next(authStore.getDashboardRedirect())
+      next('/403')
       return
     }
   }

@@ -1,0 +1,4 @@
+PLEASE RUN THE FOLLOWING FILE IN SUPABASE SQL EDITOR:
+database_migrations/050_fix_duplicate_profile_error.sql
+
+This fixes the "duplicate key value" error by handling race conditions during profile creation.
